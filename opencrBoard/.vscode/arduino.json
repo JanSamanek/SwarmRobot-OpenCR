@@ -1,7 +1,0 @@
-{
-    "configuration": "upload_method=UploadMethod",
-    "board": "OpenCR:OpenCR:OpenCR",
-    "port": "COM4",
-    "sketch": "robomaster\\robomaster.ino",
-    "programmer": "dfu_util"
-}

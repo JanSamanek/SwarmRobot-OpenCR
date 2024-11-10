@@ -1,9 +1,0 @@
-{
-    "files.associations": {
-        "stdint.h": "c",
-        "*.tcc": "cpp",
-        "string": "cpp",
-        "vector": "cpp",
-        "functional": "cpp"
-    }
-}
