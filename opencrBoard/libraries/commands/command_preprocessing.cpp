@@ -2,28 +2,40 @@
 #include "checksum.h"
 #include "commands.h"
 #include "movement_data.h"
+#include <RTOS.h>
 
 extern movement_data_t movement_data;
+extern SemaphoreHandle_t movement_data_sem;
 
 static void update_movement_data(uint8_t* command)
 {
-    command[11] = movement_data.y & 0xFF;
-    command[12] = ((movement_data.x << 3) | (movement_data.y >> 8)) & 0x07;
-    command[13] = (movement_data.x >> 5) & 0x3F;
+    if(movement_data_sem != NULL && osSemaphoreWait( movement_data_sem, ( TickType_t ) 10 ) == osOK ) 
+    {
+        command[11] = movement_data.y & 0xFF;
+        command[12] = ((movement_data.x << 3) | (movement_data.y >> 8)) & 0x07;
+        command[13] = (movement_data.x >> 5) & 0x3F;
 
-    command[16] = (movement_data.z << 4) | 0x08;
-    command[17] = (movement_data.z >> 4) & 0xFF;
+        command[16] = (movement_data.z << 4) | 0x08;
+        command[17] = (movement_data.z >> 4) & 0xFF;
 
-    command[19] = 0x02 | ((movement_data.z << 2) & 0xFF);
-    command[20] = (movement_data.z >> 6) & 0xFF;
+        command[19] = 0x02 | ((movement_data.z << 2) & 0xFF);
+        command[20] = (movement_data.z >> 6) & 0xFF;
+
+        osSemaphoreRelease(movement_data_sem);
+    }
 }
 
 static void update_gimbal_data(uint8_t* command)
 {
-    command[13] = movement_data.roll & 0xFF;
-    command[14] = (movement_data.roll >> 8) & 0xFF;
-    command[15] = movement_data.yaw & 0xFF;
-    command[16] = (movement_data.yaw >> 8) & 0xFF;
+    if(movement_data_sem != NULL && osSemaphoreWait( movement_data_sem, ( TickType_t ) 10 ) == osOK ) 
+    {
+        command[13] = movement_data.roll & 0xFF;
+        command[14] = (movement_data.roll >> 8) & 0xFF;
+        command[15] = movement_data.yaw & 0xFF;
+        command[16] = (movement_data.yaw >> 8) & 0xFF;
+
+        osSemaphoreRelease(movement_data_sem);
+    }
 }
 
 static void update_command_counter(uint8_t* command, int command_counter)
