@@ -156,8 +156,7 @@ static void subscriber_thread(void const *argument)
 
   while (1) 
   {
-    osDelay(1);
-    RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1)));
+    RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
   }
 }
 
