@@ -8,11 +8,11 @@ static void updateMoveCommand(Command&  command, const Instruction& instruction)
     command.data[12] = ((instruction.speedX << 3) | (instruction.speedY >> 8)) & 0x07;
     command.data[13] = (instruction.speedX >> 5) & 0x3F;
 
-    command.data[16] = (instruction.rotation << 4) | 0x08;
-    command.data[17] = (instruction.rotation >> 4) & 0xFF;
+    command.data[16] = (instruction.speedRotation << 4) | 0x08;
+    command.data[17] = (instruction.speedRotation >> 4) & 0xFF;
 
-    command.data[19] = 0x02 | ((instruction.rotation << 2) & 0xFF);
-    command.data[20] = (instruction.rotation >> 6) & 0xFF;
+    command.data[19] = 0x02 | ((instruction.speedRotation << 2) & 0xFF);
+    command.data[20] = (instruction.speedRotation >> 6) & 0xFF;
 }
 
 static void updateGimballCommand(Command&  command, const Instruction& instruction)
