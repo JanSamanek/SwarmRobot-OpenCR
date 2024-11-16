@@ -13,10 +13,10 @@
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
 
-#include <geometry_msgs/msg/twist.h>
+#include <geometry_msgs/msg/pose2_d.h>
 
 rcl_subscription_t subscriber;
-geometry_msgs__msg__Twist msg;
+geometry_msgs__msg__Pose2D msg;
 rclc_executor_t executor;
 rclc_support_t support;
 rcl_allocator_t allocator;
@@ -70,7 +70,7 @@ void setup()
   allocator = rcl_get_default_allocator();
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
   RCCHECK(rclc_node_init_default(&node, "micro_ros_node", "", &support));
-  RCCHECK(rclc_subscription_init_default(&subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist), "microRos/moveInstructions"));
+  RCCHECK(rclc_subscription_init_default(&subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Pose2D), "microRos/moveInstructions"));
   RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
   RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &msg, &subscription_callback, ON_NEW_DATA));
 
@@ -140,8 +140,8 @@ void callback_10_ms(void)
 
 void subscription_callback(const void * msgin)
 {  
-  const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;
-  instructions.speedX = msg ->linear.x;
-  instructions.speedY = msg->linear.y;
-  instructions.rotation = msg->angular.z;
+  const geometry_msgs__msg__Pose2D * msg = (const geometry_msgs__msg__Pose2D *)msgin;
+  instructions.speedX = msg->x;
+  instructions.speedY = msg->y;
+  instructions.rotation = msg->theta;
 }
