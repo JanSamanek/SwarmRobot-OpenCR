@@ -104,7 +104,7 @@ void setup()
 
 void loop() 
 {
-  RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
+  RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1)));
 
   Command command;
 
@@ -115,7 +115,6 @@ void loop()
   }
 
   sendCommand(command);
-  delay(1);
 }
 
 void callback_1000_ms(void)
