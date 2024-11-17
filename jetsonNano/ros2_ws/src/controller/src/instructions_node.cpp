@@ -15,7 +15,7 @@ class InstructionsPublisher : public rclcpp::Node
     InstructionsPublisher()
     : Node("movement_data_publisher")
     {
-      m_publisher = this->create_publisher<geometry_msgs::msg::Twist>("microRos/moveInstructions", 10);
+      m_publisher = this->create_publisher<geometry_msgs::msg::Twist>("moveInstructions", 10);
       m_timer = this->create_wall_timer(500ms, std::bind(&InstructionsPublisher::timer_callback, this));
     }
 

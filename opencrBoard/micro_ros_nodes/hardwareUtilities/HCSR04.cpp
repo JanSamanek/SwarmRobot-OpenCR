@@ -1,25 +1,24 @@
 #include "HCSR04.h"
 #include "Arduino.h"
 
-HCSR04::HCSR04(int trigPin, int echoPin)
+HCSR04::HCSR04(const HCSR04Configuration& configuration)
 :
-_trigPin(trigPin),
-_echoPin(echoPin)
+configuration(configuration)
 {
-    pinMode(trigPin, OUTPUT);
-    pinMode(echoPin, INPUT);
+    pinMode(configuration.trigPin, OUTPUT);
+    pinMode(configuration.echoPin, INPUT);
 }
 
 float HCSR04::getMeasurement()
 {
-    digitalWrite(_trigPin, LOW);
+    digitalWrite(configuration.trigPin, LOW);
     delayMicroseconds(2);
 
-    digitalWrite(_trigPin, HIGH);
+    digitalWrite(configuration.trigPin, HIGH);
     delayMicroseconds(10);
 
-    digitalWrite(_trigPin, LOW);
-    long duration = pulseIn(_echoPin, HIGH);
+    digitalWrite(configuration.trigPin, LOW);
+    long duration = pulseIn(configuration.echoPin, HIGH);
   
     float distance = duration * 0.034 / 2;
     return distance;

@@ -21,7 +21,7 @@ void InstructionsSubscriber::subscriptionCallback(const void *msgin)
 void InstructionsSubscriber::initialize()
 {
     rcl_node_t node = getNodeHandle();
-    RCCHECK(rclc_subscription_init_default(&_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist), "microRos/moveInstructions"));
+    RCCHECK(rclc_subscription_init_default(&_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist), "moveInstructions"));
 }
 
 rcl_subscription_t& InstructionsSubscriber::getSubscriptionHandle()
