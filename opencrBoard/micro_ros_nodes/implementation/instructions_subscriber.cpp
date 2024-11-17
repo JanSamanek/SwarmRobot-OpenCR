@@ -15,7 +15,7 @@ void InstructionsSubscriber::setup(String topic, rclc_support_t &support)
     RCCHECK(rclc_node_init_default(&_node, _nodeName.c_str(), "", &support ));
 
     rcl_node_t node = getNodeHandle();
-    RCCHECK(rclc_subscription_init_default(&_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist), "moveInstructions"));
+    RCCHECK(rclc_subscription_init_default(&_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist), topic.c_str()));
 }
 
 void InstructionsSubscriber::subscriptionCallback(const void *msgin)
