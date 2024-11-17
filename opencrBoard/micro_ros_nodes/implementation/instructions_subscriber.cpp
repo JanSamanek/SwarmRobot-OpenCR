@@ -1,5 +1,5 @@
 #include "instructions_subscriber.h"
-#include "micro_ros_error_check.h"
+#include "error_check.h"
 
 Instructions InstructionsSubscriber::_instructions = {1024, 1024, 1024, 0, 0};
 

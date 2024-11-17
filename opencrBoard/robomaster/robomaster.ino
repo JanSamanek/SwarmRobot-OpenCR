@@ -12,7 +12,7 @@
 #include <rcl/error_handling.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
-#include "micro_ros_error_check.h"
+#include "error_check.h"
 
 #include "instructions_subscriber.h"
 
@@ -72,14 +72,13 @@ void setup()
   Timer10ms.setPeriod(PERIOD_10_MS);        
   Timer10ms.attachInterrupt(callback_10_ms);
 
-  Instructions instructions = instructionsSubscriber.getInstructions();
-  buffer.push(factory.buildCommand(INIT_FREE_MODE_COMMAND, instructions));
-  buffer.push(factory.buildCommand(INIT_CHASSIS_ACCELERATION_COMMAND, instructions));
-  buffer.push(factory.buildCommand(INIT_COMMAND_1, instructions));
-  buffer.push(factory.buildCommand(INIT_COMMAND_2, instructions));
-  buffer.push(factory.buildCommand(INIT_COMMAND_3, instructions));
-  buffer.push(factory.buildCommand(INIT_COMMAND_4, instructions));
-  buffer.push(factory.buildCommand(INIT_COMMAND_5, instructions));
+  buffer.push(factory.buildCommand(INIT_FREE_MODE_COMMAND));
+  buffer.push(factory.buildCommand(INIT_CHASSIS_ACCELERATION_COMMAND));
+  buffer.push(factory.buildCommand(INIT_COMMAND_1));
+  buffer.push(factory.buildCommand(INIT_COMMAND_2));
+  buffer.push(factory.buildCommand(INIT_COMMAND_3));
+  buffer.push(factory.buildCommand(INIT_COMMAND_4));
+  buffer.push(factory.buildCommand(INIT_COMMAND_5));
 
   Timer1000ms.start();
   Timer100ms.start();
@@ -103,17 +102,15 @@ void loop()
 
 void callback_1000_ms(void)
 {
-  Instructions instructions = instructionsSubscriber.getInstructions();
-  buffer.push(factory.buildCommand(COMMAND_4, instructions));
-  buffer.push(factory.buildCommand(COMMAND_5, instructions));
+  buffer.push(factory.buildCommand(COMMAND_4));
+  buffer.push(factory.buildCommand(COMMAND_5));
 }
 
 void callback_100_ms(void)
 {
-  Instructions instructions = instructionsSubscriber.getInstructions();
-  buffer.push(factory.buildCommand(COMMAND_1, instructions));
-  buffer.push(factory.buildCommand(COMMAND_2, instructions));
-  buffer.push(factory.buildCommand(COMMAND_3, instructions));
+  buffer.push(factory.buildCommand(COMMAND_1));
+  buffer.push(factory.buildCommand(COMMAND_2));
+  buffer.push(factory.buildCommand(COMMAND_3));
 }
 
 void callback_10_ms(void)
