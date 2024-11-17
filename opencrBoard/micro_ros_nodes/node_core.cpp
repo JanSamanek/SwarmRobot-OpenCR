@@ -1,15 +1,18 @@
 #include "node_core.h"
-#include "micro_ros_error_check.h"
+#include "error_check.h"
 
-Node::Node(const char* name, rclc_support_t &support)
-: _node_name(name) 
+int Node::_nodeCounter = 0;
+
+Node::Node(String name, rclc_support_t &support)
+: _nodeName(name + "_" + String(_nodeCounter)) 
 {
     setup(support);
+    _nodeCounter++;
 }
 
 void Node::setup(rclc_support_t &support)
 {
-    RCCHECK(rclc_node_init_default(&_node, _node_name, "", &support ));  //TODO: add checks RCC check
+    RCCHECK(rclc_node_init_default(&_node, _nodeName.c_str(), "", &support ));
     initialize();
 }
 

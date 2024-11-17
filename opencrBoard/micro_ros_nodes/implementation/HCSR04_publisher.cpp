@@ -10,6 +10,9 @@ _ultraSonicSensor(sensorConfiguration)
 
 void HCSR04Publisher::publishMeasurement()
 {
+    float distance = _ultraSonicSensor.getMeasurement();
+
+    _msg.header.stamp = 
 }
 
 void HCSR04Publisher::initialize()
