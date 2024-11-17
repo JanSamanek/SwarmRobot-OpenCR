@@ -3,11 +3,19 @@
 
 Instructions InstructionsSubscriber::_instructions = {1024, 1024, 1024, 0, 0};
 
-InstructionsSubscriber::InstructionsSubscriber(rclc_support_t &support) 
-: 
-Node("instructions_subscriber_node", support)
+
+InstructionsSubscriber::InstructionsSubscriber(String nodeName)
+    : Node(nodeName)
 {
 
+}
+
+void InstructionsSubscriber::setup(String topic, rclc_support_t &support)
+{
+    RCCHECK(rclc_node_init_default(&_node, _nodeName.c_str(), "", &support ));
+
+    rcl_node_t node = getNodeHandle();
+    RCCHECK(rclc_subscription_init_default(&_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist), "moveInstructions"));
 }
 
 void InstructionsSubscriber::subscriptionCallback(const void *msgin)
@@ -18,11 +26,6 @@ void InstructionsSubscriber::subscriptionCallback(const void *msgin)
     _instructions.speedRotation = msg->angular.z;
 }
 
-void InstructionsSubscriber::initialize()
-{
-    rcl_node_t node = getNodeHandle();
-    RCCHECK(rclc_subscription_init_default(&_subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist), "moveInstructions"));
-}
 
 rcl_subscription_t& InstructionsSubscriber::getSubscriptionHandle()
 {

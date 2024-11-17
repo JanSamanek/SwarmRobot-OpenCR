@@ -9,12 +9,13 @@ class Node
 protected:
     rcl_node_t _node;
     const String _nodeName;
-    virtual void initialize() = 0; 
-    void setup(rclc_support_t &support);
+    virtual void setup(String topic, rclc_support_t &support) = 0; 
+
 private:
     static int _nodeCounter;
+
 public:
-    Node(String name, rclc_support_t &support);
+    Node(String name);
     virtual ~Node();
     rcl_node_t& getNodeHandle();
 };

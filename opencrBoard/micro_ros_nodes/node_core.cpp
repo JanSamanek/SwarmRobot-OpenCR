@@ -3,17 +3,10 @@
 
 int Node::_nodeCounter = 0;
 
-Node::Node(String name, rclc_support_t &support)
-: _nodeName(name + "_" + String(_nodeCounter)) 
+Node::Node(String name)
+: _nodeName(name) 
 {
-    setup(support);
-    _nodeCounter++;
-}
 
-void Node::setup(rclc_support_t &support)
-{
-    RCCHECK(rclc_node_init_default(&_node, _nodeName.c_str(), "", &support ));
-    initialize();
 }
 
 rcl_node_t& Node::getNodeHandle()

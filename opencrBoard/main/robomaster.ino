@@ -20,7 +20,7 @@ rclc_executor_t executor;
 rclc_support_t support;
 rcl_allocator_t allocator;
 
-InstructionsSubscriber instructionsSubscriber;
+InstructionsSubscriber instructionsSubscriber("instructions_subscriber_node");
 CircularBuffer buffer(2048);
 CommandFactory factory;
 
@@ -46,7 +46,8 @@ void setup()
   allocator = rcl_get_default_allocator();
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
 
-  instructionsSubscriber = InstructionsSubscriber(support);
+  instructionsSubscriber.setup("instructions", support);
+
   rcl_node_t instructionsNode = instructionsSubscriber.getNodeHandle();
   RCCHECK(rclc_node_init_default(&instructionsNode, "micro_ros_instructions_node", "", &support));
 

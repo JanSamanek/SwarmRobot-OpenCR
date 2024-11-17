@@ -10,11 +10,11 @@ class InstructionsSubscriber : public Node
 private:
     rcl_subscription_t _subscriber;
     static Instructions _instructions;
-    void initialize() override; 
 
 public:
+    InstructionsSubscriber(String nodeName);
     geometry_msgs__msg__Twist msg;
-    InstructionsSubscriber(rclc_support_t &support);
+    void setup(String topic, rclc_support_t &support) override; 
     static void subscriptionCallback(const void* msgin);
     rcl_subscription_t& getSubscriptionHandle();
     Instructions getInstructions();

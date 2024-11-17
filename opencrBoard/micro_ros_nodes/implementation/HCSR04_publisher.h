@@ -10,11 +10,11 @@ class HCSR04Publisher : public Node
 private:
     rcl_publisher_t _publisher;
     sensor_msgs__msg__Range _msg;
-    void initialize() override; 
     HCSR04 _ultraSonicSensor;
 
 public:
-    HCSR04Publisher(HCSR04Configuration sensorConfiguration, rclc_support_t &support);
+    HCSR04Publisher(String nodeName, HCSR04Configuration sensorConfiguration);
+    void setup(String topic, rclc_support_t &support) override; 
     void publishMeasurement();
 };
 
