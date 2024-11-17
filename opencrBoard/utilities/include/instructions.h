@@ -1,5 +1,5 @@
-#ifndef INSTRUCTION_H
-#define INSTRUCTION_H
+#ifndef INSTRUCTIONS_H
+#define INSTRUCTIONS_H
 
 #include <stdint.h>
 
@@ -9,7 +9,7 @@ typedef struct {
     uint16_t speedRotation;
     int16_t gimballYaw;
     int16_t gimballRoll;
-} Instruction;
+} Instructions;
 
-#endif // INSTRUCTION_H
+#endif // INSTRUCTIONS_H
 

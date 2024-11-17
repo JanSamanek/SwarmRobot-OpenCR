@@ -1,6 +1,6 @@
 #include "commands.h"
 #include "buffer.h"
-#include "instruction.h"
+#include "instructions.h"
 #include "command_factory.h"
 
 #include <CAN.h>
@@ -12,43 +12,19 @@
 #include <rcl/error_handling.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
+#include "micro_ros_error_check.h"
 
-#include <geometry_msgs/msg/twist.h>
+#include "instructions_subscriber.h"
 
-rcl_subscription_t subscriber;
-geometry_msgs__msg__Twist msg;
 rclc_executor_t executor;
 rclc_support_t support;
 rcl_allocator_t allocator;
-rcl_node_t node;
-rcl_timer_t timer;
 
-#define LED_PIN 22
-
-#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
-
-void error_loop(){
-  while(1){
-    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-    delay(100);
-  }
-}
-
-
-#define BOOT_TIMEOUT 5000
-
+InstructionsSubscriber instructionsSubscriber;
 CircularBuffer buffer(2048);
 CommandFactory factory;
 
-Instruction instructions = 
-{
-  .speedX = 1024,
-  .speedY = 1024,
-  .speedRotation = 1024,
-  .gimballYaw = 0,
-  .gimballRoll = 0
-};
-
+#define BOOT_TIMEOUT 5000
 #define PERIOD_1000_MS 1000000
 #define PERIOD_100_MS 100000
 #define PERIOD_10_MS 10000
@@ -69,10 +45,17 @@ void setup()
 
   allocator = rcl_get_default_allocator();
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
-  RCCHECK(rclc_node_init_default(&node, "micro_ros_node", "", &support));
-  RCCHECK(rclc_subscription_init_default(&subscriber, &node, ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist), "microRos/moveInstructions"));
+
+  instructionsSubscriber = InstructionsSubscriber(support);
+  rcl_node_t instructionsNode = instructionsSubscriber.getNodeHandle();
+  RCCHECK(rclc_node_init_default(&instructionsNode, "micro_ros_instructions_node", "", &support));
+
   RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
-  RCCHECK(rclc_executor_add_subscription(&executor, &subscriber, &msg, &subscription_callback, ON_NEW_DATA));
+
+  rcl_subscription_t instructionsSubscription = instructionsSubscriber.getSubscriptionHandle();
+  geometry_msgs__msg__Twist msg = instructionsSubscriber.msg;
+  rclc_subscription_callback_t callback = InstructionsSubscriber::subscriptionCallback;
+  RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscription, &msg, callback, ON_NEW_DATA));
 
   CanBus.begin(CAN_BAUD_1000K, CAN_STD_FORMAT);
   Serial.begin(115200);
@@ -89,6 +72,7 @@ void setup()
   Timer10ms.setPeriod(PERIOD_10_MS);        
   Timer10ms.attachInterrupt(callback_10_ms);
 
+  Instructions instructions = instructionsSubscriber.getInstructions();
   buffer.push(factory.buildCommand(INIT_FREE_MODE_COMMAND, instructions));
   buffer.push(factory.buildCommand(INIT_CHASSIS_ACCELERATION_COMMAND, instructions));
   buffer.push(factory.buildCommand(INIT_COMMAND_1, instructions));
@@ -119,12 +103,14 @@ void loop()
 
 void callback_1000_ms(void)
 {
+  Instructions instructions = instructionsSubscriber.getInstructions();
   buffer.push(factory.buildCommand(COMMAND_4, instructions));
   buffer.push(factory.buildCommand(COMMAND_5, instructions));
 }
 
 void callback_100_ms(void)
 {
+  Instructions instructions = instructionsSubscriber.getInstructions();
   buffer.push(factory.buildCommand(COMMAND_1, instructions));
   buffer.push(factory.buildCommand(COMMAND_2, instructions));
   buffer.push(factory.buildCommand(COMMAND_3, instructions));
@@ -132,15 +118,7 @@ void callback_100_ms(void)
 
 void callback_10_ms(void)
 {
+  Instructions instructions = instructionsSubscriber.getInstructions();
   buffer.push(factory.buildCommand(MOVE_COMMAND, instructions));
   buffer.push(factory.buildCommand(GIMBALL_COMMAND, instructions));
-}
-
-
-void subscription_callback(const void * msgin)
-{  
-  const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;
-  instructions.speedX = msg->linear.x;
-  instructions.speedY = msg->linear.y;
-  instructions.speedRotation = msg->angular.z;
 }

@@ -5,6 +5,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "instructions_node.h"
 
 using namespace std::chrono_literals;
 
