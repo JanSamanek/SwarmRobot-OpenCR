@@ -9,7 +9,6 @@ class HCSR04Publisher : public Node
 {
 private:
     rcl_publisher_t _publisher;
-    sensor_msgs__msg__Range _msg;
     HCSR04 _ultraSonicSensor;
 
 public:

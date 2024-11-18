@@ -33,7 +33,6 @@ HardwareTimer Timer1000ms(TIMER_CH1);
 HardwareTimer Timer100ms(TIMER_CH2);
 HardwareTimer Timer10ms(TIMER_CH3);
 
-
 void setup() 
 {   
   set_microros_transports();

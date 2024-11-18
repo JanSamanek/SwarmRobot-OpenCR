@@ -9,7 +9,7 @@
     int minimumRange;
     int maximumRange;
     double fieldOfView;
-    int referenceFrameId;
+    String referenceFrameId;
  };
 
 

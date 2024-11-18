@@ -5,7 +5,7 @@ Instructions InstructionsSubscriber::_instructions = {1024, 1024, 1024, 0, 0};
 
 
 InstructionsSubscriber::InstructionsSubscriber(String nodeName)
-    : Node(nodeName)
+: Node(nodeName)
 {
 
 }
