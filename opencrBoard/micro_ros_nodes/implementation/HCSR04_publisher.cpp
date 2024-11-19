@@ -26,7 +26,7 @@ void HCSR04Publisher::publishMeasurement()
 
     sensor_msgs__msg__Range msg;
 
-    msg.header.frame_id = micro_ros_string_utilities_init(_ultraSonicSensor.configuration.referenceFrameId.c_str());
+    msg.header.frame_id = micro_ros_string_utilities_set(msg.header.frame_id, _ultraSonicSensor.configuration.referenceFrameId.c_str());
     msg.header.stamp.sec = epoch_time_ns / 1000000000;
     msg.header.stamp.nanosec = epoch_time_ns % 1000000000;
     msg.radiation_type = sensor_msgs__msg__Range__ULTRASOUND;

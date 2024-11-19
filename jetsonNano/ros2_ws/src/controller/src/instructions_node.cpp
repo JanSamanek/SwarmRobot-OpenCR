@@ -5,15 +5,14 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/twist.hpp"
-#include "instructions_node.h"
 
 using namespace std::chrono_literals;
-
+// TODO: robot state publisher
 class InstructionsPublisher : public rclcpp::Node
 {
   public:
     InstructionsPublisher()
-    : Node("movement_data_publisher")
+    : Node("instructions_publisher")
     {
       m_publisher = this->create_publisher<geometry_msgs::msg::Twist>("instructions", 10);
       m_timer = this->create_wall_timer(500ms, std::bind(&InstructionsPublisher::timer_callback, this));
@@ -26,13 +25,13 @@ class InstructionsPublisher : public rclcpp::Node
    void timer_callback()
     {
       auto message = geometry_msgs::msg::Twist();
-      message.linear.x = 1024;
-      message.linear.y = 1024;
+      message.linear.x = 0;
+      message.linear.y = 0;
       message.linear. z = 0;
 
       message.angular.x = 0;
       message.angular.y = 0;
-      message.angular.z = 1024;
+      message.angular.z = 0;
       m_publisher->publish(message);
     }
 };

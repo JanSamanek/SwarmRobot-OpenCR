@@ -35,6 +35,7 @@ HardwareTimer Timer10ms(TIMER_CH3);
 
 void setup() 
 {   
+  // TODO: synchronize opencr jetson time
   set_microros_transports();
   
   pinMode(LED_PIN, OUTPUT);

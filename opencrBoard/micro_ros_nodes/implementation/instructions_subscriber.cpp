@@ -1,5 +1,6 @@
 #include "instructions_subscriber.h"
 #include "error_check.h"
+#include "instructions_mapping.h"
 
 Instructions InstructionsSubscriber::_instructions = {1024, 1024, 1024, 0, 0};
 
@@ -21,9 +22,7 @@ void InstructionsSubscriber::setup(String topic, rclc_support_t &support)
 void InstructionsSubscriber::subscriptionCallback(const void *msgin)
 {
     const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;
-    _instructions.speedX = msg->linear.x;
-    _instructions.speedY = msg->linear.y;
-    _instructions.speedRotation = msg->angular.z;
+    _instructions = convertToInstructions(*msg);
 }
 
 
