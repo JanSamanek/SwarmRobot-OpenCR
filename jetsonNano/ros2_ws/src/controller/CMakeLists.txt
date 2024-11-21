@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(robot_state_publisher REQUIRED)
 
 add_executable(instructions_node src/instructions_node.cpp)
 ament_target_dependencies(instructions_node  rclcpp geometry_msgs)
@@ -20,6 +21,14 @@ target_compile_features(instructions_node PUBLIC c_std_99 cxx_std_17)  # Require
 
 install(TARGETS instructions_node
   DESTINATION lib/${PROJECT_NAME})
+
+install(DIRECTORY launch/
+  DESTINATION share/${PROJECT_NAME}/launch
+)
+
+install(DIRECTORY urdf/
+  DESTINATION share/${PROJECT_NAME}/urdf
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

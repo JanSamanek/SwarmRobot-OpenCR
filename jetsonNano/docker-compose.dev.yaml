@@ -2,14 +2,16 @@ services:
   ros2_dev:
     build:
       context: .
+      args: 
+        ADDITIONAL_PACKAGES: ""
       dockerfile: Dockerfile
     container_name: ros2-dev
     volumes:
-      - ../../src:/root/ros2_ws/src
+      - /src:/root/ros2_ws/src
     network_mode: host
     environment:
       - ROS_DOMAIN_ID=0
-    command: ""
+    entrypoint: "/usr/bin/tail -f /dev/null"
     tty: true
 
   microros_agent:

@@ -1,5 +1,6 @@
 #include "command_factory.h"
 #include "checksum.h"
+#include "error_check.h"
 
 
 static void updateMoveCommand(Command&  command, const Instruction& instruction)
@@ -35,18 +36,8 @@ static void updateCrc(Command& command, uint32_t command_length)
     appendCRC16CheckSum(command.data, command_length);
 }
 
-static void preprocessCommand(Command& command, const Instruction& instruction, int command_counter)
+static void preprocessCommand(Command& command, int command_counter)
 {
-     if(command.type == GIMBALL_COMMAND)
-     {
-        updateGimballCommand(command, instruction);
-     }
-            
-     if(command.type == MOVE_COMMAND)
-     {
-        updateMoveCommand(command, instruction);
-     }
-
     updateCommandCounter(command, command_counter);
     updateCrc(command, command.length);
 }
@@ -240,6 +231,30 @@ Command CommandFactory::buildCommand(CommandType type, const Instruction& instru
     Command resultCommand;
 
     switch (type) {
+        
+        case GIMBALL_COMMAND:
+            resultCommand = gimballCommand;
+            updateGimballCommand(resultCommand, instruction);
+            break;
+
+        case MOVE_COMMAND:
+            resultCommand = moveCommand;
+            updateMoveCommand(resultCommand, instruction);
+            break;
+        
+        default:
+            error_loop();    
+    }
+
+    preprocessCommand(resultCommand, commandCounter++);
+    return resultCommand;
+}
+
+Command CommandFactory::buildCommand(CommandType type) const
+{
+    Command resultCommand;
+
+    switch (type) {
         case COMMAND_1:
             resultCommand = command1;
             break;
@@ -258,14 +273,6 @@ Command CommandFactory::buildCommand(CommandType type, const Instruction& instru
 
         case COMMAND_5:
             resultCommand = command5;
-            break;
-
-        case GIMBALL_COMMAND:
-            resultCommand = gimballCommand;
-            break;
-
-        case MOVE_COMMAND:
-            resultCommand = moveCommand;
             break;
 
         case BLASTER_COMMAND_1:
@@ -303,9 +310,11 @@ Command CommandFactory::buildCommand(CommandType type, const Instruction& instru
         case INIT_COMMAND_5:
             resultCommand = initCommand5;
             break;
+        default:
+            error_loop();  
     }
 
 
-    preprocessCommand(resultCommand, instruction, commandCounter++);
+    preprocessCommand(resultCommand, commandCounter++);
     return resultCommand;
 }
