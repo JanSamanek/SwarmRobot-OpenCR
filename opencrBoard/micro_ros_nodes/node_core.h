@@ -1,7 +1,6 @@
 #ifndef NODE_CORE_H
 #define NODE_CORE_H
 
-#include <rcl/rcl.h>
 #include <rclc/rclc.h>
 
 class Node

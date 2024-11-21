@@ -22,15 +22,6 @@
 #define INSTRUCTION_MAX_SPEED_Z 1474
 #define INSTRUCTION_MIN_SPEED_Z 574
 
-Instructions convertToInstructions(const geometry_msgs__msg__Twist &msg)
-{
-    Instructions instructions;
-    instructions.speedX = convert(msg.linear.x, MAX_SPEED_X, MIN_SPEED_X, INSTRUCTION_MAX_SPEED_X, INSTRUCTION_MIN_SPEED_X);
-    instructions.speedY = convert(msg.linear.y, MAX_SPEED_Y, MIN_SPEED_Y, INSTRUCTION_MAX_SPEED_Y, INSTRUCTION_MIN_SPEED_Y);
-    instructions.speedRotation = convert(msg.angular.z, MAX_SPEED_Z, MIN_SPEED_Z, INSTRUCTION_MAX_SPEED_Z, INSTRUCTION_MIN_SPEED_Z);
-    return instructions;
-}
-
 static int convert(float speed, float maxSpeed, float minSpeed, int instructionMaxSpeed, int instructionMinSpeed)
 {
     if(speed > maxSpeed)
@@ -44,4 +35,13 @@ static int convert(float speed, float maxSpeed, float minSpeed, int instructionM
     }
 
     return instructionMinSpeed + ((speed - minSpeed) * (instructionMaxSpeed - instructionMinSpeed)) / (maxSpeed - minSpeed);
+}
+
+Instructions convertToInstructions(const geometry_msgs__msg__Twist &msg)
+{
+    Instructions instructions;
+    instructions.speedX = convert(msg.linear.x, MAX_SPEED_X, MIN_SPEED_X, INSTRUCTION_MAX_SPEED_X, INSTRUCTION_MIN_SPEED_X);
+    instructions.speedY = convert(msg.linear.y, MAX_SPEED_Y, MIN_SPEED_Y, INSTRUCTION_MAX_SPEED_Y, INSTRUCTION_MIN_SPEED_Y);
+    instructions.speedRotation = convert(msg.angular.z, MAX_SPEED_Z, MIN_SPEED_Z, INSTRUCTION_MAX_SPEED_Z, INSTRUCTION_MIN_SPEED_Z);
+    return instructions;
 }
