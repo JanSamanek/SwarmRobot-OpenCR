@@ -3,7 +3,7 @@
 
 int Node::_nodeCounter = 0;
 
-Node::Node(String name)
+Node::Node(std::string name)
 : _nodeName(name) 
 {
 

@@ -12,8 +12,8 @@ private:
     HCSR04 _ultraSonicSensor;
 
 public:
-    HCSR04Publisher(String nodeName, HCSR04Configuration sensorConfiguration);
-    void setup(String topic, rclc_support_t &support) override; 
+    HCSR04Publisher(std::string nodeName, HCSR04Configuration sensorConfiguration);
+    void setup(std::string topic, rclc_support_t &support) override; 
     void publishMeasurement();
 };
 

@@ -5,13 +5,13 @@
 Instructions InstructionsSubscriber::_instructions = {1024, 1024, 1024, 0, 0};
 
 
-InstructionsSubscriber::InstructionsSubscriber(String nodeName)
+InstructionsSubscriber::InstructionsSubscriber(std::string nodeName)
 : Node(nodeName)
 {
 
 }
 
-void InstructionsSubscriber::setup(String topic, rclc_support_t &support)
+void InstructionsSubscriber::setup(std::string topic, rclc_support_t &support)
 {
     RCCHECK(rclc_node_init_default(&_node, _nodeName.c_str(), "", &support ));
 

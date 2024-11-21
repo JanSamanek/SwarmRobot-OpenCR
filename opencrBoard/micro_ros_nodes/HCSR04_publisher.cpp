@@ -4,14 +4,14 @@
 #include <micro_ros_utilities/string_utilities.h>
 
 
-HCSR04Publisher::HCSR04Publisher(String nodeName, HCSR04Configuration sensorConfiguration)
+HCSR04Publisher::HCSR04Publisher(std::string nodeName, HCSR04Configuration sensorConfiguration)
     : Node(nodeName),
       _ultraSonicSensor(sensorConfiguration)
 {
 
 }
 
-void HCSR04Publisher::setup(String topic, rclc_support_t &support)
+void HCSR04Publisher::setup(std::string topic, rclc_support_t &support)
 {
     RCCHECK(rclc_node_init_default(&_node, _nodeName.c_str(), "", &support ));
 
