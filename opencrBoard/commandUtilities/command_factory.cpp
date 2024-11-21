@@ -3,7 +3,7 @@
 #include "error_check.h"
 
 
-static void updateMoveCommand(Command&  command, const Instruction& instruction)
+static void updateMoveCommand(Command&  command, const Instructions& instruction)
 {
     command.data[11] = instruction.speedY & 0xFF;
     command.data[12] = ((instruction.speedX << 3) | (instruction.speedY >> 8)) & 0x07;
@@ -16,7 +16,7 @@ static void updateMoveCommand(Command&  command, const Instruction& instruction)
     command.data[20] = (instruction.speedRotation >> 6) & 0xFF;
 }
 
-static void updateGimballCommand(Command&  command, const Instruction& instruction)
+static void updateGimballCommand(Command&  command, const Instructions& instruction)
 {
     command.data[13] = instruction.gimballRoll & 0xFF;
     command.data[14] = (instruction.gimballRoll >> 8) & 0xFF;
@@ -226,7 +226,7 @@ CommandFactory::~CommandFactory()
     delete[] initCommand5.data;
 }
 
-Command CommandFactory::buildCommand(CommandType type, const Instruction& instruction) const
+Command CommandFactory::buildCommand(CommandType type, const Instructions& instruction) const
 {
     Command resultCommand;
 

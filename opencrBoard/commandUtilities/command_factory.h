@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include "commands.h"
-#include "instruction.h"
+#include "instructions.h"
 
 
 class CommandFactory
@@ -32,7 +32,7 @@ private:
 public:
     CommandFactory();
     ~CommandFactory();
-    Command buildCommand(CommandType type, const Instruction& instructions) const;
+    Command buildCommand(CommandType type, const Instructions& instructions) const;
     Command buildCommand(CommandType type) const;
 };
 
