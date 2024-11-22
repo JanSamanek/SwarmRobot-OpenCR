@@ -12,13 +12,16 @@
 #include <rcl/error_handling.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
+#include <geometry_msgs/msg/twist.h>
+
 #include "error_check.h"
 
-#include "instructions_subscriber.h"
-
+rcl_subscription_t instructionsSubscriber;
+geometry_msgs__msg__Twist msg;
 rclc_executor_t executor;
-rclc_support_t support;
 rcl_allocator_t allocator;
+rclc_support_t support;
+rcl_node_t node;
 
 CircularBuffer buffer(2048);
 CommandFactory factory;
@@ -32,7 +35,12 @@ HardwareTimer Timer1000ms(TIMER_CH1);
 HardwareTimer Timer100ms(TIMER_CH2);
 HardwareTimer Timer10ms(TIMER_CH3);
 
-// Instructions instructions;
+Instructions instructions = {1024, 1024, 1024, 0, 0};
+
+void subscription_callback(const void *msgin) {
+  const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;
+  instructions = convertToInstructions(*msg);
+}
 
 void setup() 
 {   
@@ -44,21 +52,20 @@ void setup()
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);  
 
-
   allocator = rcl_get_default_allocator();
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+  RCCHECK(rclc_node_init_default(&node, "micro_ros_arduino_node", "", &support));
 
-  InstructionsSubscriber instructionsSubscriber("instructions_subscriber_node");
-  instructionsSubscriber.setup("instructions", support);
+  RCCHECK(rclc_subscription_init_default(
+    &instructionsSubscriber,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
+    "instructions"));
 
   RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
-
-  rcl_subscription_t instructionsSubscription = instructionsSubscriber.getSubscriptionHandle();
-  geometry_msgs__msg__Twist msg = instructionsSubscriber.msg;
-  rclc_subscription_callback_t callback = InstructionsSubscriber::subscriptionCallback;
-  RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscription, &msg, callback, ON_NEW_DATA));
   
-  // instructionsHandle = instructionsSubscriber.getInstructionsHandle();
+  RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscriber, &msg, &subscription_callback, ON_NEW_DATA));
+
 
   Timer1000ms.stop();
   Timer1000ms.setPeriod(PERIOD_1000_MS);        
@@ -117,6 +124,6 @@ void callback_100_ms(void)
 
 void callback_10_ms(void)
 {
-  // buffer.push(factory.buildCommand(MOVE_COMMAND, instructionsHandle));
-  // buffer.push(factory.buildCommand(GIMBALL_COMMAND, instructionsHandle));
+  buffer.push(factory.buildCommand(MOVE_COMMAND, instructions));
+  buffer.push(factory.buildCommand(GIMBALL_COMMAND, instructions));
 }
