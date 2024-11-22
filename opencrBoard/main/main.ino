@@ -2,6 +2,7 @@
 #include "buffer.h"
 #include "instructions.h"
 #include "command_factory.h"
+#include "HCSR04.h"
 
 #include <CAN.h>
 
@@ -12,12 +13,20 @@
 #include <rcl/error_handling.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
+
 #include <geometry_msgs/msg/twist.h>
+#include <sensor_msgs/msg/range.h>
+
+#include <rmw_microros/rmw_microros.h>
+#include <micro_ros_utilities/string_utilities.h>
 
 #include "error_check.h"
 
 rcl_subscription_t instructionsSubscriber;
-geometry_msgs__msg__Twist msg;
+geometry_msgs__msg__Twist instructionMsg;
+
+rcl_publisher_t publisher;
+
 rclc_executor_t executor;
 rcl_allocator_t allocator;
 rclc_support_t support;
@@ -37,6 +46,27 @@ HardwareTimer Timer10ms(TIMER_CH3);
 
 Instructions instructions = {1024, 1024, 1024, 0, 0};
 
+
+void publishMeasurement(HCSR04 ultraSonicSensor)
+{
+    float distance = ultraSonicSensor.getMeasurement();
+    int64_t epoch_time_ns = rmw_uros_epoch_nanos();
+
+    sensor_msgs__msg__Range msg;
+
+    msg.header.frame_id = micro_ros_string_utilities_set(msg.header.frame_id, ultraSonicSensor.configuration.referenceFrameId.c_str());
+    msg.header.stamp.sec = epoch_time_ns / 1000000000;
+    msg.header.stamp.nanosec = epoch_time_ns % 1000000000;
+    msg.radiation_type = sensor_msgs__msg__Range__ULTRASOUND;
+    msg.field_of_view = ultraSonicSensor.configuration.fieldOfView * (M_PI / 180);
+    msg.min_range = ultraSonicSensor.configuration.minimumRange;
+    msg.max_range = ultraSonicSensor.configuration.maximumRange;
+    msg.range = distance;
+
+    RCCHECK(rcl_publish(&publisher, &msg, NULL));
+}
+
+
 void subscription_callback(const void *msgin) {
   const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;
   instructions = convertToInstructions(*msg);
@@ -49,8 +79,8 @@ void setup()
   Serial.begin(115200);
   CanBus.begin(CAN_BAUD_1000K, CAN_STD_FORMAT);
   
-  pinMode(LED_PIN, OUTPUT);
-  digitalWrite(LED_PIN, HIGH);  
+  pinMode(ERROR_LED_PIN, OUTPUT);
+  digitalWrite(ERROR_LED_PIN, HIGH);  
 
   allocator = rcl_get_default_allocator();
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
@@ -62,9 +92,15 @@ void setup()
     ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
     "instructions"));
 
+  RCCHECK(rclc_publisher_init_default(
+    &publisher,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
+    "HCSRO4/measurement"));
+
   RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
   
-  RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscriber, &msg, &subscription_callback, ON_NEW_DATA));
+  RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscriber, &instructionMsg, &subscription_callback, ON_NEW_DATA));
 
 
   Timer1000ms.stop();
