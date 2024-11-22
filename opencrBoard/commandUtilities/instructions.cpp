@@ -1,4 +1,20 @@
-#include "instructions_mapping.h"
+#include "instructions.h"
+
+
+static int convert(float speed, float maxSpeed, float minSpeed, int instructionMaxSpeed, int instructionMinSpeed)
+{
+    if(speed > maxSpeed)
+    {
+        return instructionMaxSpeed;
+    }
+    
+    if (speed < minSpeed)
+    {
+        return instructionMinSpeed;
+    }
+
+    return instructionMinSpeed + ((speed - minSpeed) * (instructionMaxSpeed - instructionMinSpeed)) / (maxSpeed - minSpeed);
+}
 
 // m/s
 #define MAX_SPEED_X 3.5f 
@@ -21,21 +37,6 @@
 
 #define INSTRUCTION_MAX_SPEED_Z 1474
 #define INSTRUCTION_MIN_SPEED_Z 574
-
-static int convert(float speed, float maxSpeed, float minSpeed, int instructionMaxSpeed, int instructionMinSpeed)
-{
-    if(speed > maxSpeed)
-    {
-        return instructionMaxSpeed;
-    }
-    
-    if (speed < minSpeed)
-    {
-        return instructionMinSpeed;
-    }
-
-    return instructionMinSpeed + ((speed - minSpeed) * (instructionMaxSpeed - instructionMinSpeed)) / (maxSpeed - minSpeed);
-}
 
 Instructions convertToInstructions(const geometry_msgs__msg__Twist &msg)
 {

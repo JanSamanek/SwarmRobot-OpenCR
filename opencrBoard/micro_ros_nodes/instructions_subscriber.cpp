@@ -1,6 +1,6 @@
 #include "instructions_subscriber.h"
 #include "error_check.h"
-#include "instructions_mapping.h"
+#include "instructions.h"
 
 Instructions InstructionsSubscriber::_instructions = {1024, 1024, 1024, 0, 0};
 

@@ -1,5 +1,4 @@
 #include "node_core.h"
-#include "error_check.h"
 
 int Node::_nodeCounter = 0;
 
