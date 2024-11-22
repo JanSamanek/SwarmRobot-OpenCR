@@ -2,7 +2,7 @@
 #include "buffer.h"
 #include "instructions.h"
 #include "command_factory.h"
-#include "HCSR04.h"
+#include "PING_sensor.h"
 
 #include <CAN.h>
 
@@ -42,17 +42,16 @@ HardwareTimer Timer10ms(TIMER_CH3);
 
 Instructions instructions = {1024, 1024, 1024, 0, 0};
 
-HCSR04Configuration frontSensorConfig = 
+PINGSensorConfiguration frontSensorConfig = 
 {
-  .trigPin = 3, 
-  .echoPin = 4,
-  .minimumRange = 0.03,
-  .maximumRange = 4,
+  .pingPin=3,
+  .minimumRange = 0.03f,
+  .maximumRange = 4.0f,
   .fieldOfView = 15,
-  .referenceFrameId = "HCSR04_front_link"
+  .referenceFrameId = "PING_sensor_front_link"
 };
 
-HCSR04 ultraSonicSensorFront(frontSensorConfig);
+PINGSensor ultraSonicSensorFront(frontSensorConfig);
 
 void incomming_instructions_callback(const void *msgin) {
   const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;

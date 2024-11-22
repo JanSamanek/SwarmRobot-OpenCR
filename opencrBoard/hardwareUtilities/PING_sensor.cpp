@@ -1,32 +1,33 @@
-#include "HCSR04.h"
+#include "PING_sensor.h"
 #include "Arduino.h"
 #include <rmw_microros/rmw_microros.h>
 #include <micro_ros_utilities/string_utilities.h>
 
-HCSR04::HCSR04(const HCSR04Configuration& configuration)
+PINGSensor::PINGSensor(const PINGSensorConfiguration& configuration)
 :
 configuration(configuration)
 {
-    pinMode(configuration.trigPin, OUTPUT);
-    pinMode(configuration.echoPin, INPUT);
+
 }
 
-float HCSR04::getMeasurement() const
+float PINGSensor::getMeasurement() const
 {
-    digitalWrite(configuration.trigPin, LOW);
+    int pingPin = configuration.pingPin;
+    pinMode(pingPin, OUTPUT);
+    digitalWrite(pingPin, LOW);
     delayMicroseconds(2);
+    digitalWrite(pingPin, HIGH);
+    delayMicroseconds(5);
+    digitalWrite(pingPin, LOW);
 
-    digitalWrite(configuration.trigPin, HIGH);
-    delayMicroseconds(10);
-
-    digitalWrite(configuration.trigPin, LOW);
-    long duration = pulseIn(configuration.echoPin, HIGH);
+    pinMode(pingPin, INPUT);
+    duration = pulseIn(pingPin, HIGH);
   
     float distance = duration * 0.034 / 2;
     return distance;
 }
 
-sensor_msgs__msg__Range generateMeasurementMessage(const HCSR04 &ultraSonicSensor)
+sensor_msgs__msg__Range generateMeasurementMessage(const PINGSensor &ultraSonicSensor)
 {
     float distance = ultraSonicSensor.getMeasurement();
     int64_t epoch_time_ns = rmw_uros_epoch_nanos();
