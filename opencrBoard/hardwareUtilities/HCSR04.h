@@ -2,6 +2,8 @@
 #ifndef HCSR04_H
 #define HCSR04_H
 
+#include <string>
+
  struct HCSR04Configuration
  {
     int trigPin;
@@ -9,7 +11,7 @@
     int minimumRange;
     int maximumRange;
     double fieldOfView;
-    String referenceFrameId;
+    std::string referenceFrameId;
  };
 
 

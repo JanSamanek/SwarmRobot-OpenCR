@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "instructions.h"
+#include <micro_ros_arduino.h>
 #include <geometry_msgs/msg/twist.h>
 
 typedef struct {

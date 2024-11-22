@@ -4,6 +4,7 @@
 #include "node_core.h"
 #include "HCSR04.h"
 #include <sensor_msgs/msg/range.h>
+#include <string>
 
 class HCSR04Publisher : public Node
 {
