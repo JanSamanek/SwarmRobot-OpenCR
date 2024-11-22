@@ -18,7 +18,7 @@ public:
     void setup(std::string topic, rclc_support_t &support) override; 
     static void subscriptionCallback(const void* msgin);
     rcl_subscription_t& getSubscriptionHandle();
-    Instructions getInstructions();
+    Instructions& getInstructionsHandle();
 };
 
 #endif

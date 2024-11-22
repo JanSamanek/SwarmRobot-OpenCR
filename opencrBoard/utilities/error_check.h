@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-#define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){error_loop();}}
+#define RCCHECK(fn) {rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){Serial.println(#fn); error_loop();}}
 #define LED_PIN 22
 
 inline void error_loop() {

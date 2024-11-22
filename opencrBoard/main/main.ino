@@ -20,7 +20,6 @@ rclc_executor_t executor;
 rclc_support_t support;
 rcl_allocator_t allocator;
 
-InstructionsSubscriber instructionsSubscriber("instructions_subscriber_node");
 CircularBuffer buffer(2048);
 CommandFactory factory;
 
@@ -33,23 +32,24 @@ HardwareTimer Timer1000ms(TIMER_CH1);
 HardwareTimer Timer100ms(TIMER_CH2);
 HardwareTimer Timer10ms(TIMER_CH3);
 
+// Instructions instructions;
+
 void setup() 
 {   
-  // TODO: synchronize opencr jetson time
   set_microros_transports();
+
+  Serial.begin(115200);
+  CanBus.begin(CAN_BAUD_1000K, CAN_STD_FORMAT);
   
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH);  
 
-  delay(BOOT_TIMEOUT); 
 
   allocator = rcl_get_default_allocator();
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
 
+  InstructionsSubscriber instructionsSubscriber("instructions_subscriber_node");
   instructionsSubscriber.setup("instructions", support);
-
-  rcl_node_t instructionsNode = instructionsSubscriber.getNodeHandle();
-  RCCHECK(rclc_node_init_default(&instructionsNode, "micro_ros_instructions_node", "", &support));
 
   RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
 
@@ -57,9 +57,8 @@ void setup()
   geometry_msgs__msg__Twist msg = instructionsSubscriber.msg;
   rclc_subscription_callback_t callback = InstructionsSubscriber::subscriptionCallback;
   RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscription, &msg, callback, ON_NEW_DATA));
-
-  CanBus.begin(CAN_BAUD_1000K, CAN_STD_FORMAT);
-  Serial.begin(115200);
+  
+  // instructionsHandle = instructionsSubscriber.getInstructionsHandle();
 
   Timer1000ms.stop();
   Timer1000ms.setPeriod(PERIOD_1000_MS);        
@@ -80,6 +79,8 @@ void setup()
   buffer.push(factory.buildCommand(INIT_COMMAND_3));
   buffer.push(factory.buildCommand(INIT_COMMAND_4));
   buffer.push(factory.buildCommand(INIT_COMMAND_5));
+  
+  delay(BOOT_TIMEOUT); 
 
   Timer1000ms.start();
   Timer100ms.start();
@@ -116,7 +117,6 @@ void callback_100_ms(void)
 
 void callback_10_ms(void)
 {
-  Instructions instructions = instructionsSubscriber.getInstructions();
-  buffer.push(factory.buildCommand(MOVE_COMMAND, instructions));
-  buffer.push(factory.buildCommand(GIMBALL_COMMAND, instructions));
+  // buffer.push(factory.buildCommand(MOVE_COMMAND, instructionsHandle));
+  // buffer.push(factory.buildCommand(GIMBALL_COMMAND, instructionsHandle));
 }
