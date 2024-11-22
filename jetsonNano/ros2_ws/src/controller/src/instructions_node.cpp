@@ -5,9 +5,11 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "sensor_msgs/msg/range.hpp"
 
+using std::placeholders::_1;
 using namespace std::chrono_literals;
-// TODO: robot state publisher
+
 class InstructionsPublisher : public rclcpp::Node
 {
   public:
@@ -15,15 +17,18 @@ class InstructionsPublisher : public rclcpp::Node
     : Node("instructions_publisher")
     {
       m_publisher = this->create_publisher<geometry_msgs::msg::Twist>("instructions", 10);
-      m_timer = this->create_wall_timer(500ms, std::bind(&InstructionsPublisher::timer_callback, this));
+      m_subscription = this->create_subscription<sensor_msgs::msg::Range>(
+      "HCSRO4/front/measurement", 10, std::bind(&InstructionsPublisher::front_ultrasonic_sensor_callabck, this, _1));
     }
 
   private:
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr m_publisher;
-    rclcpp::TimerBase::SharedPtr m_timer;
+    rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr m_subscription;
 
-   void timer_callback()
+    void front_ultrasonic_sensor_callabck(const sensor_msgs::msg::Range & msg) const
     {
+      RCLCPP_INFO(this->get_logger(), "HCRS04-FRONT distance: '%f'", msg.range);
+
       auto message = geometry_msgs::msg::Twist();
       message.linear.x = 0;
       message.linear.y = 0;

@@ -3,7 +3,7 @@
 
 void sendCommand(Command command)
 {
-     can_message_t message;
+    can_message_t message;
     message.id = 0x201;
     message.format = CAN_STD_FORMAT;
 

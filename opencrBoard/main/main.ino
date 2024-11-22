@@ -17,15 +17,11 @@
 #include <geometry_msgs/msg/twist.h>
 #include <sensor_msgs/msg/range.h>
 
-#include <rmw_microros/rmw_microros.h>
-#include <micro_ros_utilities/string_utilities.h>
-
 #include "error_check.h"
 
+rcl_publisher_t publisher;
 rcl_subscription_t instructionsSubscriber;
 geometry_msgs__msg__Twist instructionMsg;
-
-rcl_publisher_t publisher;
 
 rclc_executor_t executor;
 rcl_allocator_t allocator;
@@ -46,28 +42,19 @@ HardwareTimer Timer10ms(TIMER_CH3);
 
 Instructions instructions = {1024, 1024, 1024, 0, 0};
 
-
-void publishMeasurement(HCSR04 ultraSonicSensor)
+HCSR04Configuration frontSensorConfig = 
 {
-    float distance = ultraSonicSensor.getMeasurement();
-    int64_t epoch_time_ns = rmw_uros_epoch_nanos();
+  .trigPin = 3, 
+  .echoPin = 4,
+  .minimumRange = 0.03,
+  .maximumRange = 4,
+  .fieldOfView = 15,
+  .referenceFrameId = "HCSR04_front_link"
+};
 
-    sensor_msgs__msg__Range msg;
+HCSR04 ultraSonicSensorFront(frontSensorConfig);
 
-    msg.header.frame_id = micro_ros_string_utilities_set(msg.header.frame_id, ultraSonicSensor.configuration.referenceFrameId.c_str());
-    msg.header.stamp.sec = epoch_time_ns / 1000000000;
-    msg.header.stamp.nanosec = epoch_time_ns % 1000000000;
-    msg.radiation_type = sensor_msgs__msg__Range__ULTRASOUND;
-    msg.field_of_view = ultraSonicSensor.configuration.fieldOfView * (M_PI / 180);
-    msg.min_range = ultraSonicSensor.configuration.minimumRange;
-    msg.max_range = ultraSonicSensor.configuration.maximumRange;
-    msg.range = distance;
-
-    RCCHECK(rcl_publish(&publisher, &msg, NULL));
-}
-
-
-void subscription_callback(const void *msgin) {
+void incomming_instructions_callback(const void *msgin) {
   const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;
   instructions = convertToInstructions(*msg);
 }
@@ -96,11 +83,11 @@ void setup()
     &publisher,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
-    "HCSRO4/measurement"));
+    "HCSRO4/front/measurement"));
 
   RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
   
-  RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscriber, &instructionMsg, &subscription_callback, ON_NEW_DATA));
+  RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscriber, &instructionMsg, &incomming_instructions_callback, ON_NEW_DATA));
 
 
   Timer1000ms.stop();
@@ -134,7 +121,10 @@ void loop()
 {
   RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1)));
 
-  Command command;
+  sensor_msgs__msg__Range msg = generateMeasurementMessage(ultraSonicSensorFront);
+  RCCHECK(rcl_publish(&publisher, &msg, NULL));
+
+  Command command;subscription
 
   BufferStatus status = buffer.pop(command);
   if (status == BUFFER_EMPTY)

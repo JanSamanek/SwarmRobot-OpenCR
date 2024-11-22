@@ -9,10 +9,11 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(robot_state_publisher REQUIRED)
 
 add_executable(instructions_node src/instructions_node.cpp)
-ament_target_dependencies(instructions_node  rclcpp geometry_msgs)
+ament_target_dependencies(instructions_node  rclcpp geometry_msgs sensor_msgs)
 
 target_include_directories(instructions_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
