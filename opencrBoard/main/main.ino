@@ -123,7 +123,7 @@ void loop()
   sensor_msgs__msg__Range msg = generateMeasurementMessage(ultraSonicSensorFront);
   RCCHECK(rcl_publish(&publisher, &msg, NULL));
 
-  Command command;subscription
+  Command command;
 
   BufferStatus status = buffer.pop(command);
   if (status == BUFFER_EMPTY)

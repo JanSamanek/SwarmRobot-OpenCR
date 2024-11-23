@@ -21,7 +21,7 @@ float PINGSensor::getMeasurement() const
     digitalWrite(pingPin, LOW);
 
     pinMode(pingPin, INPUT);
-    duration = pulseIn(pingPin, HIGH);
+    int64_t duration = pulseIn(pingPin, HIGH);
   
     float distance = duration * 0.034 / 2;
     return distance;
