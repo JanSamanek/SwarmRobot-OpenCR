@@ -18,7 +18,7 @@ class InstructionsPublisher : public rclcpp::Node
     {
       m_publisher = this->create_publisher<geometry_msgs::msg::Twist>("instructions", 10);
       m_subscription = this->create_subscription<sensor_msgs::msg::Range>(
-      "HCSRO4/front/measurement", 10, std::bind(&InstructionsPublisher::front_ultrasonic_sensor_callabck, this, _1));
+      "PING/front/measurement", 10, std::bind(&InstructionsPublisher::front_ultrasonic_sensor_callabck, this, _1));
     }
 
   private:
@@ -27,7 +27,7 @@ class InstructionsPublisher : public rclcpp::Node
 
     void front_ultrasonic_sensor_callabck(const sensor_msgs::msg::Range & msg) const
     {
-      RCLCPP_INFO(this->get_logger(), "HCRS04-FRONT distance: '%f'", msg.range);
+      RCLCPP_INFO(this->get_logger(), "PING-FRONT distance: '%f'", msg.range);
 
       auto message = geometry_msgs::msg::Twist();
       message.linear.x = 0;

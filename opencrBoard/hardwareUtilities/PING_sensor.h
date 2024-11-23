@@ -3,6 +3,7 @@
 #define PING_SENSOR_H
 
 #include <string>
+#include <micro_ros_arduino.h>
 #include <sensor_msgs/msg/range.h>
 
  struct PINGSensorConfiguration
