@@ -44,7 +44,7 @@ Instructions instructions = {1024, 1024, 1024, 0, 0};
 
 PINGSensorConfiguration frontSensorConfig = 
 {
-  .pingPin=3,
+  .pingPin = 7,
   .minimumRange = 0.03f,
   .maximumRange = 4.0f,
   .fieldOfView = 15,
@@ -122,7 +122,7 @@ void loop()
 
   sensor_msgs__msg__Range msg = generateMeasurementMessage(ultraSonicSensorFront);
   RCCHECK(rcl_publish(&publisher, &msg, NULL));
-
+  
   Command command;
 
   BufferStatus status = buffer.pop(command);

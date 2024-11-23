@@ -10,15 +10,15 @@
 using std::placeholders::_1;
 using namespace std::chrono_literals;
 
-class InstructionsPublisher : public rclcpp::Node
+class ControllerNode : public rclcpp::Node
 {
   public:
-    InstructionsPublisher()
-    : Node("instructions_publisher")
+    ControllerNode()
+    : Node("controller_node")
     {
       m_publisher = this->create_publisher<geometry_msgs::msg::Twist>("instructions", 10);
       m_subscription = this->create_subscription<sensor_msgs::msg::Range>(
-      "PING/front/measurement", 10, std::bind(&InstructionsPublisher::front_ultrasonic_sensor_callabck, this, _1));
+      "PING/front/measurement", 10, std::bind(&ControllerNode::front_ultrasonic_sensor_callabck, this, _1));
     }
 
   private:
@@ -44,7 +44,7 @@ class InstructionsPublisher : public rclcpp::Node
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<InstructionsPublisher>());
+  rclcpp::spin(std::make_shared<ControllerNode>());
   rclcpp::shutdown();
   return 0;
 }

@@ -23,7 +23,7 @@ float PINGSensor::getMeasurement() const
     pinMode(pingPin, INPUT);
     int64_t duration = pulseIn(pingPin, HIGH);
   
-    float distance = duration * 0.034 / 2;
+    float distance = duration * 0.00034 / 2;
     return distance;
 }
 
