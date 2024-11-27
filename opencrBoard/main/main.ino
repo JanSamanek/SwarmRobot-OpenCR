@@ -50,6 +50,13 @@ PINGSensor backUltraSonicSensor(backSensorConfig);
 osSemaphoreId bufferSemaphore;
 osSemaphoreId instructionsSemaphore; 
 
+#define PERIOD_1000_MS 1000000
+#define PERIOD_100_MS 100000
+#define PERIOD_10_MS 10000
+
+HardwareTimer Timer1000ms(TIMER_CH1);
+HardwareTimer Timer100ms(TIMER_CH2);
+HardwareTimer Timer10ms(TIMER_CH3);
 
 void setup() 
 {   
@@ -80,7 +87,7 @@ void setup()
     FRONT_SENSOR_TOPIC));
 
   RCCHECK(rclc_publisher_init_default(
-    &frontUltraSonicSensorPublisher,
+    &backUltraSonicSensorPublisher,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
     BACK_SENSOR_TOPIC));
@@ -89,28 +96,15 @@ void setup()
   
   RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscriber, &instructionMsg, &incomming_instructions_callback, ON_NEW_DATA));
 
-  // semaphore init
-  osSemaphoreDef(BUFFER_SEMAPHORE);      
-  osSemaphoreDef(INSTRUCTIONS_SEMAPHORE);  
-
-  bufferSemaphore = osSemaphoreCreate(osSemaphore(BUFFER_SEMAPHORE), 1);
-  instructionsSemaphore = osSemaphoreCreate(osSemaphore(INSTRUCTIONS_SEMAPHORE), 1);
-
   // tasks init
-  osThreadDef(TIMERS_INIT_THREAD, timers_init_thread, osPriorityNormal, 0, 8196);
-  osThreadCreate(osThread(TIMERS_INIT_THREAD), NULL);
-
-  osThreadDef(SUBSCRIBER_THREAD, instructions_subscriber_thread, osPriorityNormal, 0, 8196);
-  osThreadCreate(osThread(SUBSCRIBER_THREAD), NULL);
+  osThreadDef(COMMAND_HANDLER_THREAD, command_handler_thread, osPriorityNormal, 0, 8196);
+  osThreadCreate(osThread(COMMAND_HANDLER_THREAD), NULL);
 
   osThreadDef(FRONT_DISTANCE_PUBLISHER_THREAD, front_distance_publisher_thread, osPriorityNormal, 0, 8196);
   osThreadCreate(osThread(FRONT_DISTANCE_PUBLISHER_THREAD), NULL);
 
   osThreadDef(BACK_DISTANCE_PUBLISHER_THREAD, back_distance_publisher_thread, osPriorityNormal, 0, 8196);
   osThreadCreate(osThread(BACK_DISTANCE_PUBLISHER_THREAD), NULL);
-
-  osThreadDef(SEND_COMMAND_THREAD, send_command_thread, osPriorityNormal, 0, 8196);
-  osThreadCreate(osThread(SEND_COMMAND_THREAD), NULL);
   
   // init commands
   buffer.push(factory.buildCommand(INIT_FREE_MODE_COMMAND));
@@ -130,89 +124,66 @@ void loop()
 
 }
 
-void callback_1000ms(const void* argument)
+void callback_1000ms(void)
 {
-  if(bufferSemaphore != NULL) 
-  {
-    if(osSemaphoreWait(bufferSemaphore, ( TickType_t ) 10 ) == osOK)
-    {
-      buffer.push(factory.buildCommand(COMMAND_4));
-      buffer.push(factory.buildCommand(COMMAND_5));
-      osSemaphoreRelease(bufferSemaphore);
-    }
-  }
+  buffer.push(factory.buildCommand(COMMAND_4));
+  buffer.push(factory.buildCommand(COMMAND_5));
 }
 
-void callback_100ms(const void* argument)
+void callback_100ms(void)
 {
-  if(bufferSemaphore != NULL) 
-  {
-    if(osSemaphoreWait(bufferSemaphore, ( TickType_t ) 10 ) == osOK)
-    {
-      buffer.push(factory.buildCommand(COMMAND_1));
-      buffer.push(factory.buildCommand(COMMAND_2));
-      buffer.push(factory.buildCommand(COMMAND_3));
-      osSemaphoreRelease(bufferSemaphore);
-    }
-  }
+  buffer.push(factory.buildCommand(COMMAND_1));
+  buffer.push(factory.buildCommand(COMMAND_2));
+  buffer.push(factory.buildCommand(COMMAND_3));
 }
 
-void callback_10ms(const void* argument)
+void callback_10ms(void)
 {
-  if(instructionsSemaphore != NULL) 
-  {
-    if(osSemaphoreWait( instructionsSemaphore, ( TickType_t ) 10 ) == osOK )
-    {
-      if(osSemaphoreWait(bufferSemaphore, ( TickType_t ) 10 ) == osOK)
-      {
-        buffer.push(factory.buildCommand(MOVE_COMMAND, instructions));
-        buffer.push(factory.buildCommand(GIMBALL_COMMAND, instructions));
-        osSemaphoreRelease(bufferSemaphore);
-      }
-      osSemaphoreRelease(instructionsSemaphore);
-    }
-  }
+  buffer.push(factory.buildCommand(MOVE_COMMAND, instructions));
+  buffer.push(factory.buildCommand(GIMBALL_COMMAND, instructions));
 }
 
-void timers_init_thread(void const *argument)
+void incomming_instructions_callback(const void *msgin) 
 {
-  (void) argument;
-
-  osTimerDef(TIMER_10ms, callback_10ms);
-  osTimerId timerId10ms = osTimerCreate(osTimer(TIMER_10ms), osTimerPeriodic, NULL);
-
-  osTimerDef(TIMER_100ms, callback_100ms);
-  osTimerId timerId100ms = osTimerCreate(osTimer(TIMER_100ms), osTimerPeriodic, NULL);
-
-  osTimerDef(TIMER_1000ms, callback_1000ms);
-  osTimerId timerId1000ms = osTimerCreate(osTimer(TIMER_1000ms), osTimerPeriodic, NULL);
-
-  osTimerStart(timerId1000ms, 1000);
-  osTimerStart(timerId100ms, 100);
-  osTimerStart(timerId10ms, 10);
-}
-
-void incomming_instructions_callback(const void *msgin) {
   const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;
-  if(instructionsSemaphore != NULL) 
-  {
-    if(osSemaphoreWait( instructionsSemaphore, ( TickType_t ) 10 ) == osOK )
-    {
-      instructions = convertToInstructions(*msg);
-      osSemaphoreRelease(instructionsSemaphore);
-    }
-  } 
+  instructions = convertToInstructions(*msg);
 }
 
-void instructions_subscriber_thread(void const *argument)
+void command_handler_thread(void const *argument)
 {
   (void) argument;
+
+  Timer1000ms.stop();
+  Timer1000ms.setPeriod(PERIOD_1000_MS);        
+  Timer1000ms.attachInterrupt(callback_1000ms);
+
+  Timer100ms.stop();
+  Timer100ms.setPeriod(PERIOD_100_MS);        
+  Timer100ms.attachInterrupt(callback_100ms);
+
+  Timer10ms.stop();
+  Timer10ms.setPeriod(PERIOD_10_MS);        
+  Timer10ms.attachInterrupt(callback_10ms);
+
+  Timer1000ms.start();
+  Timer100ms.start();
+  Timer10ms.start();
 
   while(1)
   {
     RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1)));
+
+    Command command;
+    BufferStatus status = buffer.pop(command);
+    if (status == BUFFER_EMPTY)
+    {
+      return;
+    }
+
+    sendCommand(command);
   }
 }
+
 
 void front_distance_publisher_thread(void const *argument)
 {
@@ -233,31 +204,5 @@ void back_distance_publisher_thread(void const *argument)
   {
     sensor_msgs__msg__Range msg = generateMeasurementMessage(backUltraSonicSensor);
     RCCHECK(rcl_publish(&backUltraSonicSensorPublisher, &msg, NULL));
-  }
-}
-
-void send_command_thread(void const *argument)
-{
-  (void) argument;
-
-  while(1)
-  {
-    if(bufferSemaphore != NULL) 
-    {
-      if(osSemaphoreWait(bufferSemaphore, ( TickType_t ) 10 ) == osOK)
-      {
-        Command command;
-
-        BufferStatus status = buffer.pop(command);
-        if (status == BUFFER_EMPTY)
-        {
-          return;
-        }
-
-        sendCommand(command);
-        //TODO: maybe have to introduce delay to release the semaphore
-        osSemaphoreRelease(bufferSemaphore);
-      }
-    }
   }
 }
