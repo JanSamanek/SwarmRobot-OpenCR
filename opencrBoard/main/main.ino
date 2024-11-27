@@ -5,9 +5,9 @@
 #include "PING_sensor.h"
 
 #include <CAN.h>
+#include <RTOS.h>
 
 #include <micro_ros_arduino.h>
-
 #include <stdio.h>
 #include <rcl/rcl.h>
 #include <rcl/error_handling.h>
@@ -18,6 +18,13 @@
 #include <sensor_msgs/msg/range.h>
 
 #include "error_check.h"
+
+#define BOOT_TIMEOUT 5000
+
+#define NODE_NAME "micro_ros_arduino_node"
+#define INSTRUCTIONS_TOPIC "instructions"
+#define FRONT_SENSOR_TOPIC "PING/front/measurement"
+#define BACK_SENSOR_TOPIC "PING/back/measurement"
 
 rcl_publisher_t frontUltraSonicSensorPublisher;
 rcl_publisher_t backUltraSonicSensorPublisher;
@@ -32,93 +39,80 @@ rcl_node_t node;
 
 CircularBuffer buffer(2048);
 CommandFactory factory;
-
-#define BOOT_TIMEOUT 5000
-#define PERIOD_1000_MS 1000000
-#define PERIOD_100_MS 100000
-#define PERIOD_10_MS 10000
-
-HardwareTimer Timer1000ms(TIMER_CH1);
-HardwareTimer Timer100ms(TIMER_CH2);
-HardwareTimer Timer10ms(TIMER_CH3);
-
 Instructions instructions = {1024, 1024, 1024, 0, 0};
 
-PINGSensorConfiguration frontSensorConfig = 
-{
-  .pingPin = 7,
-  .minimumRange = 0.03f,
-  .maximumRange = 4.0f,
-  .fieldOfView = 15,
-  .referenceFrameId = "PING_sensor_front_link"
-};
+PINGSensorConfiguration frontSensorConfig = createFrontSensorConfig();
 PINGSensor frontUltraSonicSensor(frontSensorConfig);
 
-PINGSensorConfiguration backSensorConfig = 
-{
-  .pingPin = 8,
-  .minimumRange = 0.03f,
-  .maximumRange = 4.0f,
-  .fieldOfView = 15,
-  .referenceFrameId = "PING_sensor_back_link"
-};
+PINGSensorConfiguration backSensorConfig = createBackSensorConfig();
 PINGSensor backUltraSonicSensor(backSensorConfig);
 
+osSemaphoreId bufferSemaphore;
+osSemaphoreId instructionsSemaphore; 
 
-void incomming_instructions_callback(const void *msgin) {
-  const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;
-  instructions = convertToInstructions(*msg);
-}
 
 void setup() 
 {   
-  set_microros_transports();
-
+  // communication init
   Serial.begin(115200);
   CanBus.begin(CAN_BAUD_1000K, CAN_STD_FORMAT);
   
+  // micro-ros init
+  set_microros_transports();
+
   pinMode(ERROR_LED_PIN, OUTPUT);
   digitalWrite(ERROR_LED_PIN, HIGH);  
 
   allocator = rcl_get_default_allocator();
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
-  RCCHECK(rclc_node_init_default(&node, "micro_ros_arduino_node", "", &support));
+  RCCHECK(rclc_node_init_default(&node, NODE_NAME, "", &support));
 
   RCCHECK(rclc_subscription_init_default(
     &instructionsSubscriber,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
-    "instructions"));
+    INSTRUCTIONS_TOPIC));
 
   RCCHECK(rclc_publisher_init_default(
     &frontUltraSonicSensorPublisher,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
-    "PING/front/measurement"));
+    FRONT_SENSOR_TOPIC));
 
   RCCHECK(rclc_publisher_init_default(
     &frontUltraSonicSensorPublisher,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
-    "PING/back/measurement"));
+    BACK_SENSOR_TOPIC));
 
   RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
   
   RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscriber, &instructionMsg, &incomming_instructions_callback, ON_NEW_DATA));
 
+  // semaphore init
+  osSemaphoreDef(BUFFER_SEMAPHORE);      
+  osSemaphoreDef(INSTRUCTIONS_SEMAPHORE);  
 
-  Timer1000ms.stop();
-  Timer1000ms.setPeriod(PERIOD_1000_MS);        
-  Timer1000ms.attachInterrupt(callback_1000_ms);
+  bufferSemaphore = osSemaphoreCreate(osSemaphore(BUFFER_SEMAPHORE), 1);
+  instructionsSemaphore = osSemaphoreCreate(osSemaphore(INSTRUCTIONS_SEMAPHORE), 1);
 
-  Timer100ms.stop();
-  Timer100ms.setPeriod(PERIOD_100_MS);        
-  Timer100ms.attachInterrupt(callback_100_ms);
+  // tasks init
+  osThreadDef(TIMERS_INIT_THREAD, timers_init_thread, osPriorityNormal, 0, 8196);
+  osThreadCreate(osThread(TIMERS_INIT_THREAD), NULL);
 
-  Timer10ms.stop();
-  Timer10ms.setPeriod(PERIOD_10_MS);        
-  Timer10ms.attachInterrupt(callback_10_ms);
+  osThreadDef(SUBSCRIBER_THREAD, instructions_subscriber_thread, osPriorityNormal, 0, 8196);
+  osThreadCreate(osThread(SUBSCRIBER_THREAD), NULL);
 
+  osThreadDef(FRONT_DISTANCE_PUBLISHER_THREAD, front_distance_publisher_thread, osPriorityNormal, 0, 8196);
+  osThreadCreate(osThread(FRONT_DISTANCE_PUBLISHER_THREAD), NULL);
+
+  osThreadDef(BACK_DISTANCE_PUBLISHER_THREAD, back_distance_publisher_thread, osPriorityNormal, 0, 8196);
+  osThreadCreate(osThread(BACK_DISTANCE_PUBLISHER_THREAD), NULL);
+
+  osThreadDef(SEND_COMMAND_THREAD, send_command_thread, osPriorityNormal, 0, 8196);
+  osThreadCreate(osThread(SEND_COMMAND_THREAD), NULL);
+  
+  // init commands
   buffer.push(factory.buildCommand(INIT_FREE_MODE_COMMAND));
   buffer.push(factory.buildCommand(INIT_CHASSIS_ACCELERATION_COMMAND));
   buffer.push(factory.buildCommand(INIT_COMMAND_1));
@@ -127,50 +121,143 @@ void setup()
   buffer.push(factory.buildCommand(INIT_COMMAND_4));
   buffer.push(factory.buildCommand(INIT_COMMAND_5));
   
-  delay(BOOT_TIMEOUT); 
-
-  Timer1000ms.start();
-  Timer100ms.start();
-  Timer10ms.start();
+  osDelay(BOOT_TIMEOUT); 
+  osKernelStart();
 }
 
 void loop() 
 {
-  RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1)));
 
-// TODO: freertos parallel
-  sensor_msgs__msg__Range msg = generateMeasurementMessage(frontUltraSonicSensor);
-  RCCHECK(rcl_publish(&frontUltraSonicSensorPublisher, &msg, NULL));
-  
-  sensor_msgs__msg__Range msg = generateMeasurementMessage(backUltraSonicSensor);
-  RCCHECK(rcl_publish(&backUltraSonicSensorPublisher, &msg, NULL));
-  
-  Command command;
+}
 
-  BufferStatus status = buffer.pop(command);
-  if (status == BUFFER_EMPTY)
+void callback_1000ms(const void* argument)
+{
+  if(bufferSemaphore != NULL) 
   {
-      return;
+    if(osSemaphoreWait(bufferSemaphore, ( TickType_t ) 10 ) == osOK)
+    {
+      buffer.push(factory.buildCommand(COMMAND_4));
+      buffer.push(factory.buildCommand(COMMAND_5));
+      osSemaphoreRelease(bufferSemaphore);
+    }
   }
-
-  sendCommand(command);
 }
 
-void callback_1000_ms(void)
+void callback_100ms(const void* argument)
 {
-  buffer.push(factory.buildCommand(COMMAND_4));
-  buffer.push(factory.buildCommand(COMMAND_5));
+  if(bufferSemaphore != NULL) 
+  {
+    if(osSemaphoreWait(bufferSemaphore, ( TickType_t ) 10 ) == osOK)
+    {
+      buffer.push(factory.buildCommand(COMMAND_1));
+      buffer.push(factory.buildCommand(COMMAND_2));
+      buffer.push(factory.buildCommand(COMMAND_3));
+      osSemaphoreRelease(bufferSemaphore);
+    }
+  }
 }
 
-void callback_100_ms(void)
+void callback_10ms(const void* argument)
 {
-  buffer.push(factory.buildCommand(COMMAND_1));
-  buffer.push(factory.buildCommand(COMMAND_2));
-  buffer.push(factory.buildCommand(COMMAND_3));
+  if(instructionsSemaphore != NULL) 
+  {
+    if(osSemaphoreWait( instructionsSemaphore, ( TickType_t ) 10 ) == osOK )
+    {
+      if(osSemaphoreWait(bufferSemaphore, ( TickType_t ) 10 ) == osOK)
+      {
+        buffer.push(factory.buildCommand(MOVE_COMMAND, instructions));
+        buffer.push(factory.buildCommand(GIMBALL_COMMAND, instructions));
+        osSemaphoreRelease(bufferSemaphore);
+      }
+      osSemaphoreRelease(instructionsSemaphore);
+    }
+  }
 }
 
-void callback_10_ms(void)
+void timers_init_thread(void const *argument)
 {
-  buffer.push(factory.buildCommand(MOVE_COMMAND, instructions));
-  buffer.push(factory.buildCommand(GIMBALL_COMMAND, instructions));
+  (void) argument;
+
+  osTimerDef(TIMER_10ms, callback_10ms);
+  osTimerId timerId10ms = osTimerCreate(osTimer(TIMER_10ms), osTimerPeriodic, NULL);
+
+  osTimerDef(TIMER_100ms, callback_100ms);
+  osTimerId timerId100ms = osTimerCreate(osTimer(TIMER_100ms), osTimerPeriodic, NULL);
+
+  osTimerDef(TIMER_1000ms, callback_1000ms);
+  osTimerId timerId1000ms = osTimerCreate(osTimer(TIMER_1000ms), osTimerPeriodic, NULL);
+
+  osTimerStart(timerId1000ms, 1000);
+  osTimerStart(timerId100ms, 100);
+  osTimerStart(timerId10ms, 10);
+}
+
+void incomming_instructions_callback(const void *msgin) {
+  const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;
+  if(instructionsSemaphore != NULL) 
+  {
+    if(osSemaphoreWait( instructionsSemaphore, ( TickType_t ) 10 ) == osOK )
+    {
+      instructions = convertToInstructions(*msg);
+      osSemaphoreRelease(instructionsSemaphore);
+    }
+  } 
+}
+
+void instructions_subscriber_thread(void const *argument)
+{
+  (void) argument;
+
+  while(1)
+  {
+    RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1)));
+  }
+}
+
+void front_distance_publisher_thread(void const *argument)
+{
+  (void) argument;
+
+  while(1)
+  {
+    sensor_msgs__msg__Range msg = generateMeasurementMessage(frontUltraSonicSensor);
+    RCCHECK(rcl_publish(&frontUltraSonicSensorPublisher, &msg, NULL));
+  }
+}
+
+void back_distance_publisher_thread(void const *argument)
+{
+  (void) argument;
+
+  while(1)
+  {
+    sensor_msgs__msg__Range msg = generateMeasurementMessage(backUltraSonicSensor);
+    RCCHECK(rcl_publish(&backUltraSonicSensorPublisher, &msg, NULL));
+  }
+}
+
+void send_command_thread(void const *argument)
+{
+  (void) argument;
+
+  while(1)
+  {
+    if(bufferSemaphore != NULL) 
+    {
+      if(osSemaphoreWait(bufferSemaphore, ( TickType_t ) 10 ) == osOK)
+      {
+        Command command;
+
+        BufferStatus status = buffer.pop(command);
+        if (status == BUFFER_EMPTY)
+        {
+          return;
+        }
+
+        sendCommand(command);
+        //TODO: maybe have to introduce delay to release the semaphore
+        osSemaphoreRelease(bufferSemaphore);
+      }
+    }
+  }
 }

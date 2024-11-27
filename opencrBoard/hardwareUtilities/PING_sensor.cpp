@@ -45,3 +45,25 @@ sensor_msgs__msg__Range generateMeasurementMessage(const PINGSensor &ultraSonicS
 
     return msg;
 }
+
+PINGSensorConfiguration createFrontSensorConfig()
+{
+    return {
+        .pingPin = 7,
+        .minimumRange = 0.03f,
+        .maximumRange = 4.0f,
+        .fieldOfView = 15,
+        .referenceFrameId = "PING_sensor_front_link"
+    };
+}
+
+PINGSensorConfiguration createBackSensorConfig()
+{
+    return {
+        .pingPin = 8,
+        .minimumRange = 0.03f,
+        .maximumRange = 4.0f,
+        .fieldOfView = 15,
+        .referenceFrameId = "PING_sensor_back_link"
+    };
+}

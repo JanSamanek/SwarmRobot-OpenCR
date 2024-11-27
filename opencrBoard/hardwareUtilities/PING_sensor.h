@@ -15,7 +15,6 @@
     std::string referenceFrameId;
  };
 
-
 class PINGSensor
 {
 public:
@@ -25,5 +24,7 @@ public:
 };
 
 sensor_msgs__msg__Range generateMeasurementMessage(const PINGSensor& ultraSonicSensor);
+PINGSensorConfiguration createFrontSensorConfig();
+PINGSensorConfiguration createBackSensorConfig();
 
 #endif
