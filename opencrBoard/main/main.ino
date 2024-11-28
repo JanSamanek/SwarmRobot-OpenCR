@@ -47,9 +47,6 @@ PINGSensor frontUltraSonicSensor(frontSensorConfig);
 PINGSensorConfiguration backSensorConfig = createBackSensorConfig();
 PINGSensor backUltraSonicSensor(backSensorConfig);
 
-osSemaphoreId bufferSemaphore;
-osSemaphoreId instructionsSemaphore; 
-
 #define PERIOD_1000_MS 1000000
 #define PERIOD_100_MS 100000
 #define PERIOD_10_MS 10000
@@ -58,17 +55,74 @@ HardwareTimer Timer1000ms(TIMER_CH1);
 HardwareTimer Timer100ms(TIMER_CH2);
 HardwareTimer Timer10ms(TIMER_CH3);
 
-void setup() 
-{   
-  // communication init
+void initCommunication()
+{
   Serial.begin(115200);
   CanBus.begin(CAN_BAUD_1000K, CAN_STD_FORMAT);
-  
-  // micro-ros init
+}
+
+void initMicroRos()
+{
   set_microros_transports();
 
-  pinMode(ERROR_LED_PIN, OUTPUT);
+  allocator = rcl_get_default_allocator();
+  RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+  RCCHECK(rclc_node_init_default(&node, NODE_NAME, "", &support));
+
+  RCCHECK(rclc_subscription_init_default(
+    &instructionsSubscriber,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
+    INSTRUCTIONS_TOPIC));
+
+  RCCHECK(rclc_publisher_init_default(
+    &frontUltraSonicSensorPublisher,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
+    FRONT_SENSOR_TOPIC));
+
+  RCCHECK(rclc_publisher_init_default(
+    &backUltraSonicSensorPublisher,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
+    BACK_SENSOR_TOPIC));
+
+  RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
+  
+  RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscriber, &instructionMsg, &incomming_instructions_callback, ON_NEW_DATA));
+}
+
+void initThreads()
+{
+  osThreadDef(COMMAND_HANDLER_THREAD, command_handler_thread, osPriorityNormal, 0, 8196);
+  osThreadCreate(osThread(COMMAND_HANDLER_THREAD), NULL);
+
+  osThreadDef(FRONT_DISTANCE_PUBLISHER_THREAD, front_distance_publisher_thread, osPriorityNormal, 0, 8196);
+  osThreadCreate(osThread(FRONT_DISTANCE_PUBLISHER_THREAD), NULL);
+
+  osThreadDef(BACK_DISTANCE_PUBLISHER_THREAD, back_distance_publisher_thread, osPriorityNormal, 0, 8196);
+  osThreadCreate(osThread(BACK_DISTANCE_PUBLISHER_THREAD), NULL);
+}
+
+void initCommands()
+{
+  buffer.push(factory.buildCommand(INIT_FREE_MODE_COMMAND));
+  buffer.push(factory.buildCommand(INIT_CHASSIS_ACCELERATION_COMMAND));
+  buffer.push(factory.buildCommand(INIT_COMMAND_1));
+  buffer.push(factory.buildCommand(INIT_COMMAND_2));
+  buffer.push(factory.buildCommand(INIT_COMMAND_3));
+  buffer.push(factory.buildCommand(INIT_COMMAND_4));
+  buffer.push(factory.buildCommand(INIT_COMMAND_5));
+}
+
+void setup() 
+{   
+  pinMode(ERROR_LED_PIN, OUTPUT); 
   digitalWrite(ERROR_LED_PIN, HIGH);  
+
+  initCommunication();
+  
+  set_microros_transports();
 
   allocator = rcl_get_default_allocator();
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
@@ -96,25 +150,9 @@ void setup()
   
   RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscriber, &instructionMsg, &incomming_instructions_callback, ON_NEW_DATA));
 
-  // tasks init
-  osThreadDef(COMMAND_HANDLER_THREAD, command_handler_thread, osPriorityNormal, 0, 8196);
-  osThreadCreate(osThread(COMMAND_HANDLER_THREAD), NULL);
+  initCommands();
+  initThreads();
 
-  osThreadDef(FRONT_DISTANCE_PUBLISHER_THREAD, front_distance_publisher_thread, osPriorityNormal, 0, 8196);
-  osThreadCreate(osThread(FRONT_DISTANCE_PUBLISHER_THREAD), NULL);
-
-  osThreadDef(BACK_DISTANCE_PUBLISHER_THREAD, back_distance_publisher_thread, osPriorityNormal, 0, 8196);
-  osThreadCreate(osThread(BACK_DISTANCE_PUBLISHER_THREAD), NULL);
-  
-  // init commands
-  buffer.push(factory.buildCommand(INIT_FREE_MODE_COMMAND));
-  buffer.push(factory.buildCommand(INIT_CHASSIS_ACCELERATION_COMMAND));
-  buffer.push(factory.buildCommand(INIT_COMMAND_1));
-  buffer.push(factory.buildCommand(INIT_COMMAND_2));
-  buffer.push(factory.buildCommand(INIT_COMMAND_3));
-  buffer.push(factory.buildCommand(INIT_COMMAND_4));
-  buffer.push(factory.buildCommand(INIT_COMMAND_5));
-  
   osDelay(BOOT_TIMEOUT); 
   osKernelStart();
 }
@@ -149,25 +187,21 @@ void incomming_instructions_callback(const void *msgin)
   instructions = convertToInstructions(*msg);
 }
 
+void setupTimer(HardwareTimer &timer, uint32_t period, void (*callback)(void))
+{
+  timer.stop();
+  timer.setPeriod(period);
+  timer.attachInterrupt(callback);
+  timer.start();
+}
+
 void command_handler_thread(void const *argument)
 {
   (void) argument;
 
-  Timer1000ms.stop();
-  Timer1000ms.setPeriod(PERIOD_1000_MS);        
-  Timer1000ms.attachInterrupt(callback_1000ms);
-
-  Timer100ms.stop();
-  Timer100ms.setPeriod(PERIOD_100_MS);        
-  Timer100ms.attachInterrupt(callback_100ms);
-
-  Timer10ms.stop();
-  Timer10ms.setPeriod(PERIOD_10_MS);        
-  Timer10ms.attachInterrupt(callback_10ms);
-
-  Timer1000ms.start();
-  Timer100ms.start();
-  Timer10ms.start();
+  setupTimer(Timer1000ms, PERIOD_1000_MS, callback_1000ms);
+  setupTimer(Timer100ms, PERIOD_100_MS, callback_100ms);
+  setupTimer(Timer10ms, PERIOD_10_MS, callback_10ms);
 
   while(1)
   {
