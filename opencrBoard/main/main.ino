@@ -64,6 +64,7 @@ void initCommunication()
 void initMicroRos()
 {
   set_microros_transports();
+  osDelay(2000);
 
   allocator = rcl_get_default_allocator();
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
@@ -116,13 +117,14 @@ void initCommands()
 }
 
 void setup() 
-{   
+{    
+  set_microros_transports();
   pinMode(ERROR_LED_PIN, OUTPUT); 
+  
   digitalWrite(ERROR_LED_PIN, HIGH);  
+  osDelay(2000);
 
   initCommunication();
-  
-  set_microros_transports();
 
   allocator = rcl_get_default_allocator();
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
