@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: ros2-dev
     volumes:
-      - /src:/root/ros2_ws/src
+      - ./ros2_ws/src:/root/ros2_ws/src
     network_mode: host
     environment:
       - ROS_DOMAIN_ID=0
@@ -22,6 +22,6 @@ services:
     volumes:
       - /dev:/dev
     environment:
-      - ROS_DOMAIN_ID=1
-    command: "serial --dev /dev/ttyACM0"
+      - ROS_DOMAIN_ID=0
+    command: "serial --dev /dev/ttyACM0 -v6"
     tty: true

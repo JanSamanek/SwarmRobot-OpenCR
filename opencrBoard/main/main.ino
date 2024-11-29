@@ -32,13 +32,14 @@ CircularBuffer buffer(2048);
 CommandFactory factory;
 
 #define BOOT_TIMEOUT 5000
-#define PERIOD_1000_MS 1000000
-#define PERIOD_100_MS 100000
-#define PERIOD_10_MS 10000
 
-HardwareTimer Timer1000ms(TIMER_CH1);
-HardwareTimer Timer100ms(TIMER_CH2);
-HardwareTimer Timer10ms(TIMER_CH3);
+#define PERIOD_1000_MS 1000
+#define PERIOD_100_MS 100
+#define PERIOD_10_MS 10
+
+uint32_t previousMillis10ms = 0;
+uint32_t previousMillis100ms = 0;
+uint32_t previousMillis1000ms = 0;
 
 Instructions instructions = {1024, 1024, 1024, 0, 0};
 
@@ -62,44 +63,33 @@ void setup()
 {   
   set_microros_transports();
 
+  pinMode(ERROR_LED_PIN, OUTPUT);
+  digitalWrite(ERROR_LED_PIN, HIGH);  
+  
+  delay(BOOT_TIMEOUT); 
+
   Serial.begin(115200);
   CanBus.begin(CAN_BAUD_1000K, CAN_STD_FORMAT);
   
-  pinMode(ERROR_LED_PIN, OUTPUT);
-  digitalWrite(ERROR_LED_PIN, HIGH);  
-
   allocator = rcl_get_default_allocator();
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
   RCCHECK(rclc_node_init_default(&node, "micro_ros_arduino_node", "", &support));
 
-  RCCHECK(rclc_subscription_init_default(
-    &instructionsSubscriber,
-    &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
-    "instructions"));
+  // RCCHECK(rclc_subscription_init_default(
+  //   &instructionsSubscriber,
+  //   &node,
+  //   ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
+  //   "instructions"));
 
   RCCHECK(rclc_publisher_init_default(
     &publisher,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
-    "PING/front/measurement"));
+   "PING/front/measurement"));
 
-  RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
+  RCCHECK(rclc_executor_init(&executor, &support.context, 0, &allocator));
   
-  RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscriber, &instructionMsg, &incomming_instructions_callback, ON_NEW_DATA));
-
-
-  Timer1000ms.stop();
-  Timer1000ms.setPeriod(PERIOD_1000_MS);        
-  Timer1000ms.attachInterrupt(callback_1000_ms);
-
-  Timer100ms.stop();
-  Timer100ms.setPeriod(PERIOD_100_MS);        
-  Timer100ms.attachInterrupt(callback_100_ms);
-
-  Timer10ms.stop();
-  Timer10ms.setPeriod(PERIOD_10_MS);        
-  Timer10ms.attachInterrupt(callback_10_ms);
+  // RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscriber, &instructionMsg, &incomming_instructions_callback, ON_NEW_DATA));
 
   buffer.push(factory.buildCommand(INIT_FREE_MODE_COMMAND));
   buffer.push(factory.buildCommand(INIT_CHASSIS_ACCELERATION_COMMAND));
@@ -109,28 +99,37 @@ void setup()
   buffer.push(factory.buildCommand(INIT_COMMAND_4));
   buffer.push(factory.buildCommand(INIT_COMMAND_5));
   
-  delay(BOOT_TIMEOUT); 
-
-  Timer1000ms.start();
-  Timer100ms.start();
-  Timer10ms.start();
 }
 
 void loop() 
 {
-  RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1)));
+  uint32_t currentMillis = millis();
+
+  if (currentMillis - previousMillis10ms >= PERIOD_10_MS) {
+    previousMillis10ms = currentMillis;
+    callback_10_ms();
+  }
+
+  if (currentMillis - previousMillis100ms >= PERIOD_100_MS) {
+    previousMillis100ms = currentMillis;
+    callback_100_ms();
+  }
+
+  if (currentMillis - previousMillis1000ms >= PERIOD_1000_MS) {
+    previousMillis1000ms = currentMillis;
+    callback_1000_ms();
+  }
+
+  RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
 
   sensor_msgs__msg__Range msg = generateMeasurementMessage(ultraSonicSensorFront);
   RCCHECK(rcl_publish(&publisher, &msg, NULL));
-  
-  Command command;
 
+  Command command;
   BufferStatus status = buffer.pop(command);
   if (status == BUFFER_EMPTY)
-  {
       return;
-  }
-
+  
   sendCommand(command);
 }
 
