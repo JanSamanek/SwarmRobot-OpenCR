@@ -54,7 +54,8 @@ PINGSensorConfiguration frontSensorConfig =
 
 PINGSensor ultraSonicSensorFront(frontSensorConfig);
 
-void incomming_instructions_callback(const void *msgin) {
+void incomming_instructions_callback(const void *msgin)
+{
   const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;
   instructions = convertToInstructions(*msg);
 }
@@ -73,7 +74,7 @@ void setup()
   
   allocator = rcl_get_default_allocator();
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
-  RCCHECK(rclc_node_init_default(&node, "micro_ros_arduino_node", "", &support));
+  RCCHECK(rclc_node_init_default(&node, "main_node", "", &support));
 
   // RCCHECK(rclc_subscription_init_default(
   //   &instructionsSubscriber,
@@ -85,7 +86,7 @@ void setup()
     &publisher,
     &node,
     ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
-   "PING/front/measurement"));
+   "ping/front/measurement"));
 
   RCCHECK(rclc_executor_init(&executor, &support.context, 0, &allocator));
   
@@ -105,25 +106,35 @@ void loop()
 {
   uint32_t currentMillis = millis();
 
-  if (currentMillis - previousMillis10ms >= PERIOD_10_MS) {
+  if (currentMillis - previousMillis10ms >= PERIOD_10_MS) 
+  {
     previousMillis10ms = currentMillis;
-    callback_10_ms();
+    
+    buffer.push(factory.buildCommand(MOVE_COMMAND, instructions));
+    buffer.push(factory.buildCommand(GIMBALL_COMMAND, instructions));
   }
 
-  if (currentMillis - previousMillis100ms >= PERIOD_100_MS) {
+  if (currentMillis - previousMillis100ms >= PERIOD_100_MS) 
+  {
     previousMillis100ms = currentMillis;
-    callback_100_ms();
+     
+    buffer.push(factory.buildCommand(COMMAND_1));
+    buffer.push(factory.buildCommand(COMMAND_2));
+    buffer.push(factory.buildCommand(COMMAND_3));
   }
 
-  if (currentMillis - previousMillis1000ms >= PERIOD_1000_MS) {
+  if (currentMillis - previousMillis1000ms >= PERIOD_1000_MS) 
+  {
     previousMillis1000ms = currentMillis;
-    callback_1000_ms();
+    
+    buffer.push(factory.buildCommand(COMMAND_4));
+    buffer.push(factory.buildCommand(COMMAND_5));
   }
 
-  RCCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
+  RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
 
   sensor_msgs__msg__Range msg = generateMeasurementMessage(ultraSonicSensorFront);
-  RCCHECK(rcl_publish(&publisher, &msg, NULL));
+  RCSOFTCHECK(rcl_publish(&publisher, &msg, NULL));
 
   Command command;
   BufferStatus status = buffer.pop(command);
@@ -131,23 +142,4 @@ void loop()
       return;
   
   sendCommand(command);
-}
-
-void callback_1000_ms(void)
-{
-  buffer.push(factory.buildCommand(COMMAND_4));
-  buffer.push(factory.buildCommand(COMMAND_5));
-}
-
-void callback_100_ms(void)
-{
-  buffer.push(factory.buildCommand(COMMAND_1));
-  buffer.push(factory.buildCommand(COMMAND_2));
-  buffer.push(factory.buildCommand(COMMAND_3));
-}
-
-void callback_10_ms(void)
-{
-  buffer.push(factory.buildCommand(MOVE_COMMAND, instructions));
-  buffer.push(factory.buildCommand(GIMBALL_COMMAND, instructions));
 }
