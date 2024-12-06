@@ -1,6 +1,7 @@
 FROM ros:humble
 
 ARG ADDITIONAL_PACKAGES 
+
 WORKDIR /root/ros2_ws
 
 RUN apt-get update && apt-get install -y \
@@ -12,10 +13,11 @@ RUN apt-get update && apt-get install -y \
     && rosdep update \
     && rm -rf /var/lib/apt/lists/*
 
-# COPY ros2_ws/src /root/ros2_ws
-
+    
 SHELL [ "/bin/bash", "-c" ]
 RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+
+# COPY ros2_ws/src /root/ros2_ws
 # RUN rosdep install --from-paths src --ignore-src -r -y
 # RUN source /opt/ros/humble/setup.bash && colcon build --symlink-install
 # RUN source install/setup.bash

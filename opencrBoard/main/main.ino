@@ -76,11 +76,11 @@ void setup()
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
   RCCHECK(rclc_node_init_default(&node, "main_node", "", &support));
 
-  // RCCHECK(rclc_subscription_init_default(
-  //   &instructionsSubscriber,
-  //   &node,
-  //   ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
-  //   "instructions"));
+  RCCHECK(rclc_subscription_init_default(
+    &instructionsSubscriber,
+    &node,
+    ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
+    "instructions"));
 
   RCCHECK(rclc_publisher_init_default(
     &publisher,
@@ -88,9 +88,9 @@ void setup()
     ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
    "ping/front/measurement"));
 
-  RCCHECK(rclc_executor_init(&executor, &support.context, 0, &allocator));
+  RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
   
-  // RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscriber, &instructionMsg, &incomming_instructions_callback, ON_NEW_DATA));
+  RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscriber, &instructionMsg, &incomming_instructions_callback, ON_NEW_DATA));
 
   buffer.push(factory.buildCommand(INIT_FREE_MODE_COMMAND));
   buffer.push(factory.buildCommand(INIT_CHASSIS_ACCELERATION_COMMAND));
@@ -131,7 +131,7 @@ void loop()
     buffer.push(factory.buildCommand(COMMAND_5));
   }
 
-  RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(100)));
+  RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1)));
 
   sensor_msgs__msg__Range msg = generateMeasurementMessage(ultraSonicSensorFront);
   RCSOFTCHECK(rcl_publish(&publisher, &msg, NULL));
