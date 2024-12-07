@@ -17,6 +17,7 @@
 #include <geometry_msgs/msg/twist.h>
 #include <sensor_msgs/msg/range.h>
 
+#include <micro_ros_utilities/type_utilities.h>
 #include <micro_ros_utilities/string_utilities.h>
 
 #include "error_check.h"
@@ -115,11 +116,29 @@ void setup()
   
   RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscriber, &instructionMsg, &incomming_instructions_callback, ON_NEW_DATA));
 
+  if(!micro_ros_utilities_create_message_memory(
+      ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
+      &frontSensorMsg,
+      (micro_ros_utilities_memory_conf_t) {})
+    )
+  {
+    error_loop();
+  }
+
   frontSensorMsg.header.frame_id = micro_ros_string_utilities_set(frontSensorMsg.header.frame_id, ultraSonicSensorFront.configuration.referenceFrameId);
   frontSensorMsg.radiation_type = sensor_msgs__msg__Range__ULTRASOUND;
   frontSensorMsg.field_of_view = ultraSonicSensorFront.configuration.fieldOfView * (M_PI / 180);
   frontSensorMsg.min_range = ultraSonicSensorFront.configuration.minimumRange;
   frontSensorMsg.max_range = ultraSonicSensorFront.configuration.maximumRange;
+
+  if(!micro_ros_utilities_create_message_memory(
+      ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
+      &backSensorMsg,
+      (micro_ros_utilities_memory_conf_t) {})
+    )
+  {
+    error_loop();
+  }
 
   backSensorMsg.header.frame_id = micro_ros_string_utilities_set(backSensorMsg.header.frame_id, ultraSonicSensorBack.configuration.referenceFrameId);
   backSensorMsg.radiation_type = sensor_msgs__msg__Range__ULTRASOUND;
