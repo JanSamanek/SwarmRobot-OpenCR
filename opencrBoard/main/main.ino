@@ -82,7 +82,6 @@ void setup()
   
   delay(BOOT_TIMEOUT); 
 
-  Serial.begin(115200);
   CanBus.begin(CAN_BAUD_1000K, CAN_STD_FORMAT);
   
   allocator = rcl_get_default_allocator();

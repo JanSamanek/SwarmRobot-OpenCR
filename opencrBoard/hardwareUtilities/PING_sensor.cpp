@@ -1,6 +1,5 @@
 #include "PING_sensor.h"
 #include "Arduino.h"
-#include <rmw_microros/rmw_microros.h>
 #include <micro_ros_utilities/string_utilities.h>
 
 PINGSensor::PINGSensor(const PINGSensorConfiguration& configuration)
@@ -21,7 +20,7 @@ float PINGSensor::getMeasurement() const
     digitalWrite(pingPin, LOW);
 
     pinMode(pingPin, INPUT);
-    int64_t duration = pulseIn(pingPin, HIGH);
+    int64_t duration = pulseIn(pingPin, HIGH, 7500); // TODO: timeout
   
     float distance = duration * 0.00034 / 2;
     return distance;
