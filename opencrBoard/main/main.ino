@@ -48,7 +48,7 @@ uint32_t previousMillis1000ms = 0;
 
 Instructions instructions = {1024, 1024, 1024, 0, 0};
 
-PINGSensorConfiguration frontSensorConfig = 
+PINGSensorConfiguration frontSensorConfig =
 {
   .pingPin = 7,
   .minimumRange = 0.03f,
@@ -59,7 +59,7 @@ PINGSensorConfiguration frontSensorConfig =
 
 PINGSensor ultraSonicSensorFront(frontSensorConfig);
 
-PINGSensorConfiguration backSensorConfig = 
+PINGSensorConfiguration backSensorConfig =
 {
   .pingPin = 8,
   .minimumRange = 0.03f,
@@ -79,17 +79,17 @@ void incomming_instructions_callback(const void *msgin)
   instructions = convertToInstructions(*msg);
 }
 
-void setup() 
-{   
+void setup()
+{
   set_microros_transports();
 
   pinMode(ERROR_LED_PIN, OUTPUT);
-  digitalWrite(ERROR_LED_PIN, HIGH);  
-  
-  delay(BOOT_TIMEOUT); 
+  digitalWrite(ERROR_LED_PIN, HIGH);
+
+  delay(BOOT_TIMEOUT);
 
   CanBus.begin(CAN_BAUD_1000K, CAN_STD_FORMAT);
-  
+
   allocator = rcl_get_default_allocator();
   RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
   RCCHECK(rclc_node_init_default(&node, "main_node", "", &support));
@@ -113,7 +113,7 @@ void setup()
    "ping/back/measurement"));
 
   RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
-  
+
   RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscriber, &instructionMsg, &incomming_instructions_callback, ON_NEW_DATA));
 
   if(!micro_ros_utilities_create_message_memory(
@@ -153,34 +153,34 @@ void setup()
   buffer.push(factory.buildCommand(INIT_COMMAND_3));
   buffer.push(factory.buildCommand(INIT_COMMAND_4));
   buffer.push(factory.buildCommand(INIT_COMMAND_5));
-  
+
 }
 
-void loop() 
+void loop()
 {
   uint32_t currentMillis = millis();
 
-  if (currentMillis - previousMillis10ms >= PERIOD_10_MS) 
+  if (currentMillis - previousMillis10ms >= PERIOD_10_MS)
   {
     previousMillis10ms = currentMillis;
-    
+
     buffer.push(factory.buildCommand(MOVE_COMMAND, instructions));
     buffer.push(factory.buildCommand(GIMBALL_COMMAND, instructions));
   }
 
-  if (currentMillis - previousMillis100ms >= PERIOD_100_MS) 
+  if (currentMillis - previousMillis100ms >= PERIOD_100_MS)
   {
     previousMillis100ms = currentMillis;
-     
+
     buffer.push(factory.buildCommand(COMMAND_1));
     buffer.push(factory.buildCommand(COMMAND_2));
     buffer.push(factory.buildCommand(COMMAND_3));
   }
 
-  if (currentMillis - previousMillis1000ms >= PERIOD_1000_MS) 
+  if (currentMillis - previousMillis1000ms >= PERIOD_1000_MS)
   {
     previousMillis1000ms = currentMillis;
-    
+
     buffer.push(factory.buildCommand(COMMAND_4));
     buffer.push(factory.buildCommand(COMMAND_5));
   }
@@ -197,6 +197,6 @@ void loop()
   BufferStatus status = buffer.pop(command);
   if (status == BUFFER_EMPTY)
       return;
-  
+
   sendCommand(command);
 }

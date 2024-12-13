@@ -1,25 +1,22 @@
 FROM ros:humble
 
-ARG ADDITIONAL_PACKAGES 
+SHELL [ "/bin/bash", "-c" ]
 
-WORKDIR /root/ros2_ws
+WORKDIR /ros2_ws
 
 RUN apt-get update && apt-get install -y \
     python3-colcon-common-extensions \
     python3-rosdep \
-    python3-ament-package \
+    build-essential \
     ros-humble-robot-state-publisher \
-    ${ADDITIONAL_PACKAGES} \
-    && rosdep update \
     && rm -rf /var/lib/apt/lists/*
 
-    
-SHELL [ "/bin/bash", "-c" ]
-RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+RUN rosdep update
 
-# COPY ros2_ws/src /root/ros2_ws
-# RUN rosdep install --from-paths src --ignore-src -r -y
-# RUN source /opt/ros/humble/setup.bash && colcon build --symlink-install
-# RUN source install/setup.bash
+COPY ros2_ws/src ./src
+
+RUN source /opt/ros/humble/setup.bash && rosdep install --from-paths src --ignore-src -r -y
+RUN source /opt/ros/humble/setup.bash && colcon build --symlink-install
+RUN source /opt/ros/humble/setup.bash && source /ros_ws/install/setup.bash
 
 ENTRYPOINT ["ros2 ", "launch", "controller", "controller.launch.py"]
