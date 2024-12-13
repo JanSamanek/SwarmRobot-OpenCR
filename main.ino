@@ -54,7 +54,7 @@ PINGSensorConfiguration frontSensorConfig =
   .minimumRange = 0.03f,
   .maximumRange = 4.0f,
   .fieldOfView = 15,
-  .referenceFrameId = "sensor_front"
+  .referenceFrameId = "ultrasonic_sensor_front"
 };
 
 PINGSensor ultraSonicSensorFront(frontSensorConfig);
@@ -65,7 +65,7 @@ PINGSensorConfiguration backSensorConfig =
   .minimumRange = 0.03f,
   .maximumRange = 4.0f,
   .fieldOfView = 15,
-  .referenceFrameId = "sensor_back"
+  .referenceFrameId = "ultrasonic_sensor_back"
 };
 
 PINGSensor ultraSonicSensorBack(backSensorConfig);
