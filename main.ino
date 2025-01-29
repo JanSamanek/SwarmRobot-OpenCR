@@ -22,8 +22,17 @@
 
 #include "error_check.h"
 
-rcl_publisher_t frontSensorPublisher;
-rcl_publisher_t backSensorPublisher;
+#define USE_FRONT_ULTRASONIC_SENSOR 0
+#define USE_BACK_ULTRASONIC_SENSOR 0
+
+#if USE_FRONT_ULTRASONIC_SENSOR
+  rcl_publisher_t frontSensorPublisher;
+#endif // USE_FRONT_ULTRASONIC_SENSOR
+
+#if USE_BACK_ULTRASONIC_SENSOR
+  rcl_publisher_t backSensorPublisher;
+#endif // USE_BACK_ULTRASONIC_SENSOR
+
 
 rcl_subscription_t instructionsSubscriber;
 geometry_msgs__msg__Twist instructionMsg;
@@ -48,30 +57,37 @@ uint32_t previousMillis1000ms = 0;
 
 Instructions instructions = {1024, 1024, 1024, 0, 0};
 
-PINGSensorConfiguration frontSensorConfig =
-{
-  .pingPin = 7,
-  .minimumRange = 0.03f,
-  .maximumRange = 4.0f,
-  .fieldOfView = 15,
-  .referenceFrameId = "ultrasonic_sensor_front"
-};
+#if USE_FRONT_ULTRASONIC_SENSOR
 
-PINGSensor ultraSonicSensorFront(frontSensorConfig);
+  PINGSensorConfiguration frontSensorConfig =
+  {
+    .pingPin = 7,
+    .minimumRange = 0.03f,
+    .maximumRange = 4.0f,
+    .fieldOfView = 15,
+    .referenceFrameId = "ultrasonic_sensor_front"
+  };
 
-PINGSensorConfiguration backSensorConfig =
-{
-  .pingPin = 8,
-  .minimumRange = 0.03f,
-  .maximumRange = 4.0f,
-  .fieldOfView = 15,
-  .referenceFrameId = "ultrasonic_sensor_back"
-};
+  PINGSensor ultraSonicSensorFront(frontSensorConfig);
+  sensor_msgs__msg__Range frontSensorMsg;
 
-PINGSensor ultraSonicSensorBack(backSensorConfig);
+#endif // USE_FRONT_ULTRASONIC_SENSOR
 
-sensor_msgs__msg__Range frontSensorMsg;
-sensor_msgs__msg__Range backSensorMsg;
+#if USE_BACK_ULTRASONIC_SENSOR
+
+  PINGSensorConfiguration backSensorConfig =
+  {
+    .pingPin = 8,
+    .minimumRange = 0.03f,
+    .maximumRange = 4.0f,
+    .fieldOfView = 15,
+    .referenceFrameId = "ultrasonic_sensor_back"
+  };
+  PINGSensor ultraSonicSensorBack(backSensorConfig);
+  sensor_msgs__msg__Range backSensorMsg;
+
+#endif // USE_BACK_ULTRASONIC_SENSOR
+
 
 void incomming_instructions_callback(const void *msgin)
 {
@@ -100,51 +116,68 @@ void setup()
     ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
     "instructions"));
 
-  RCCHECK(rclc_publisher_init_default(
-    &frontSensorPublisher,
-    &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
-   "ping/front/measurement"));
+  #if USE_FRONT_ULTRASONIC_SENSOR
 
-  RCCHECK(rclc_publisher_init_default(
-    &backSensorPublisher,
-    &node,
-    ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
-   "ping/back/measurement"));
+    RCCHECK(rclc_publisher_init_default(
+      &frontSensorPublisher,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
+    "ping/front/measurement"));
+
+  #endif // USE_FRONT_ULTRASONIC_SENSOR
+
+  #if USE_BACK_ULTRASONIC_SENSOR
+  
+    RCCHECK(rclc_publisher_init_default(
+      &backSensorPublisher,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
+    "ping/back/measurement"));
+
+  #endif // USE_BACK_ULTRASONIC_SENSOR
 
   RCCHECK(rclc_executor_init(&executor, &support.context, 1, &allocator));
 
   RCCHECK(rclc_executor_add_subscription(&executor, &instructionsSubscriber, &instructionMsg, &incomming_instructions_callback, ON_NEW_DATA));
 
-  if(!micro_ros_utilities_create_message_memory(
-      ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
-      &frontSensorMsg,
-      (micro_ros_utilities_memory_conf_t) {})
-    )
-  {
-    error_loop();
-  }
+  #if USE_FRONT_ULTRASONIC_SENSOR
+    
+    if(!micro_ros_utilities_create_message_memory(
+        ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
+        &frontSensorMsg,
+        (micro_ros_utilities_memory_conf_t) {})
+      )
+    {
+      error_loop();
+    }
 
-  frontSensorMsg.header.frame_id = micro_ros_string_utilities_set(frontSensorMsg.header.frame_id, ultraSonicSensorFront.configuration.referenceFrameId);
-  frontSensorMsg.radiation_type = sensor_msgs__msg__Range__ULTRASOUND;
-  frontSensorMsg.field_of_view = ultraSonicSensorFront.configuration.fieldOfView * (M_PI / 180);
-  frontSensorMsg.min_range = ultraSonicSensorFront.configuration.minimumRange;
-  frontSensorMsg.max_range = ultraSonicSensorFront.configuration.maximumRange;
+    frontSensorMsg.header.frame_id = micro_ros_string_utilities_set(frontSensorMsg.header.frame_id, ultraSonicSensorFront.configuration.referenceFrameId);
+    frontSensorMsg.radiation_type = sensor_msgs__msg__Range__ULTRASOUND;
+    frontSensorMsg.field_of_view = ultraSonicSensorFront.configuration.fieldOfView * (M_PI / 180);
+    frontSensorMsg.min_range = ultraSonicSensorFront.configuration.minimumRange;
+    
+    frontSensorMsg.max_range = ultraSonicSensorFront.configuration.maximumRange;
 
-  if(!micro_ros_utilities_create_message_memory(
-      ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
-      &backSensorMsg,
-      (micro_ros_utilities_memory_conf_t) {})
-    )
-  {
-    error_loop();
-  }
+  #endif // USE_FRONT_ULTRASONIC_SENSOR
 
-  backSensorMsg.header.frame_id = micro_ros_string_utilities_set(backSensorMsg.header.frame_id, ultraSonicSensorBack.configuration.referenceFrameId);
-  backSensorMsg.radiation_type = sensor_msgs__msg__Range__ULTRASOUND;
-  backSensorMsg.field_of_view = ultraSonicSensorBack.configuration.fieldOfView * (M_PI / 180);
-  backSensorMsg.min_range = ultraSonicSensorBack.configuration.minimumRange;
-  backSensorMsg.max_range = ultraSonicSensorBack.configuration.maximumRange;
+  #if USE_BACK_ULTRASONIC_SENSOR
+
+    if(!micro_ros_utilities_create_message_memory(
+        ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Range),
+        &backSensorMsg,
+        (micro_ros_utilities_memory_conf_t) {})
+      )
+    {
+      error_loop();
+    }
+
+    backSensorMsg.header.frame_id = micro_ros_string_utilities_set(backSensorMsg.header.frame_id, ultraSonicSensorBack.configuration.referenceFrameId);
+    backSensorMsg.radiation_type = sensor_msgs__msg__Range__ULTRASOUND;
+    backSensorMsg.field_of_view = ultraSonicSensorBack.configuration.fieldOfView * (M_PI / 180);
+    backSensorMsg.min_range = ultraSonicSensorBack.configuration.minimumRange;
+    backSensorMsg.max_range = ultraSonicSensorBack.configuration.maximumRange;
+
+  #endif // USE_BACK_ULTRASONIC_SENSOR
 
   buffer.push(factory.buildCommand(INIT_FREE_MODE_COMMAND));
   buffer.push(factory.buildCommand(INIT_CHASSIS_ACCELERATION_COMMAND));
@@ -187,12 +220,20 @@ void loop()
 
   RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1)));
 
-  fillMeasurementMessage(ultraSonicSensorFront, &frontSensorMsg);
-  RCSOFTCHECK(rcl_publish(&frontSensorPublisher, &frontSensorMsg, NULL));
+  #if USE_FRONT_ULTRASONIC_SENSOR
 
-  fillMeasurementMessage(ultraSonicSensorBack, &backSensorMsg);
-  RCSOFTCHECK(rcl_publish(&backSensorPublisher, &backSensorMsg, NULL));
+    fillMeasurementMessage(ultraSonicSensorFront, &frontSensorMsg);
+    RCSOFTCHECK(rcl_publish(&frontSensorPublisher, &frontSensorMsg, NULL));
 
+  #endif //USE_FRONT_ULTRASONIC_SENSOR
+
+  #if USE_BACK_ULTRASONIC_SENSOR
+
+    fillMeasurementMessage(ultraSonicSensorBack, &backSensorMsg);
+    RCSOFTCHECK(rcl_publish(&backSensorPublisher, &backSensorMsg, NULL));
+
+  #endif //USE_BACK_ULTRASONIC_SENSOR
+  
   Command command;
   BufferStatus status = buffer.pop(command);
   if (status == BUFFER_EMPTY)
