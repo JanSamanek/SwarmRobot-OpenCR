@@ -24,7 +24,7 @@ void sendCommand(Command command)
             commandLen--;
             // Serial.printf("0x%02X ", message.data[i]);
         }
-        //CanBus.writeMessage(&message); // TODO:
+        CanBus.writeMessage(&message);
     }
     // Serial.println();
 }

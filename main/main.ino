@@ -198,7 +198,7 @@ void loop()
     previousMillis10ms = currentMillis;
 
     buffer.push(factory.buildCommand(MOVE_COMMAND, instructions));
-    buffer.push(factory.buildCommand(GIMBALL_COMMAND, instructions));
+    // buffer.push(factory.buildCommand(GIMBALL_COMMAND, instructions));
   }
 
   if (currentMillis - previousMillis100ms >= PERIOD_100_MS)
