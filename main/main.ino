@@ -92,10 +92,10 @@ Instructions instructions = {1024, 1024, 1024, 0, 0};
 void incomming_instructions_callback(const void *msgin)
 {
   const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;
-  instructions.speedX = msg->linear.x;
-  instructions.speedY = msg->linear.y;
-  instructions.speedRotation = msg->angular.z;
-  // instructions = convertToInstructions(*msg);  // TODO: conversion
+  // instructions.speedX = msg->linear.x;
+  // instructions.speedY = msg->linear.y;
+  // instructions.speedRotation = msg->angular.z;
+  instructions = convertToInstructions(*msg); 
 }
 
 void setup()
