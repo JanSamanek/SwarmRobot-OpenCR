@@ -13,6 +13,7 @@
 #include <rcl/error_handling.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
+#include <rmw_microros/rmw_microros.h>
 
 #include <geometry_msgs/msg/twist.h>
 #include <sensor_msgs/msg/range.h>
@@ -21,6 +22,8 @@
 #include <micro_ros_utilities/string_utilities.h>
 
 #include "error_check.h"
+
+#define MICROROS_AGENT_CONNECTION_LED 13
 
 #define USE_FRONT_ULTRASONIC_SENSOR 0
 #define USE_BACK_ULTRASONIC_SENSOR 0
@@ -100,6 +103,12 @@ void incomming_instructions_callback(const void *msgin)
 
 void setup()
 {
+  pinMode(MICROROS_AGENT_CONNECTION_LED, OUTPUT);
+
+  digitalWrite(MICROROS_AGENT_CONNECTION_LED, LOW);
+  while (RMW_RET_OK != rmw_uros_ping_agent(100, 1)) {}
+  digitalWrite(MICROROS_AGENT_CONNECTION_LED, HIGH);
+
   set_microros_transports();
 
   pinMode(ERROR_LED_PIN, OUTPUT);
