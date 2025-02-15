@@ -48,8 +48,6 @@ rcl_node_t node;
 CircularBuffer buffer(2048);
 CommandFactory factory;
 
-#define BOOT_TIMEOUT 5000
-
 #define PERIOD_1000_MS 1000
 #define PERIOD_100_MS 100
 #define PERIOD_10_MS 10
@@ -103,19 +101,19 @@ void incomming_instructions_callback(const void *msgin)
 
 void setup()
 {
+  pinMode(ERROR_LED_PIN, OUTPUT);
+  digitalWrite(ERROR_LED_PIN, HIGH);
   pinMode(MICROROS_AGENT_CONNECTION_LED, OUTPUT);
-
-  digitalWrite(MICROROS_AGENT_CONNECTION_LED, LOW);
-  while (RMW_RET_OK != rmw_uros_ping_agent(100, 1)) {}
-  digitalWrite(MICROROS_AGENT_CONNECTION_LED, HIGH);
 
   set_microros_transports();
 
-  pinMode(ERROR_LED_PIN, OUTPUT);
-  digitalWrite(ERROR_LED_PIN, HIGH);
-
-  delay(BOOT_TIMEOUT);
-
+  digitalWrite(MICROROS_AGENT_CONNECTION_LED, LOW);
+  while (RMW_RET_OK != rmw_uros_ping_agent(100, 1)) {  
+    digitalWrite(MICROROS_AGENT_CONNECTION_LED, !digitalRead(MICROROS_AGENT_CONNECTION_LED));       
+    delay(100); 
+  }
+  digitalWrite(MICROROS_AGENT_CONNECTION_LED, HIGH);
+  
   CanBus.begin(CAN_BAUD_1000K, CAN_STD_FORMAT);
 
   allocator = rcl_get_default_allocator();
