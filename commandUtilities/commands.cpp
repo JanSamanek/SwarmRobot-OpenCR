@@ -95,6 +95,7 @@ Command buildCommand(CommandType type, Instructions instructions)
     }
 
     preprocessCommand(&resultCommand, commandCounter++);
+    return resultCommand;
 }
 
 Command buildCommand(CommandType type)
