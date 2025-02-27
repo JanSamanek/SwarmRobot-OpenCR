@@ -1,7 +1,6 @@
 #include "commands.h"
 #include "buffer.h"
 #include "instructions.h"
-#include "command_factory.h"
 #include "PING_sensor.h"
 
 #include <CAN.h>
@@ -46,7 +45,6 @@ rclc_support_t support;
 rcl_node_t node;
 
 CircularBuffer buffer(2048);
-CommandFactory factory;
 
 #define PERIOD_1000_MS 1000
 #define PERIOD_100_MS 100
@@ -189,13 +187,13 @@ void setup()
 
   #endif // USE_BACK_ULTRASONIC_SENSOR
 
-  buffer.push(factory.buildCommand(INIT_FREE_MODE_COMMAND));
-  buffer.push(factory.buildCommand(INIT_CHASSIS_ACCELERATION_COMMAND));
-  buffer.push(factory.buildCommand(INIT_COMMAND_1));
-  buffer.push(factory.buildCommand(INIT_COMMAND_2));
-  buffer.push(factory.buildCommand(INIT_COMMAND_3));
-  buffer.push(factory.buildCommand(INIT_COMMAND_4));
-  buffer.push(factory.buildCommand(INIT_COMMAND_5));
+  buffer.push(buildCommand(INIT_FREE_MODE_COMMAND));
+  buffer.push(buildCommand(INIT_CHASSIS_ACCELERATION_COMMAND));
+  buffer.push(buildCommand(INIT_COMMAND_1));
+  buffer.push(buildCommand(INIT_COMMAND_2));
+  buffer.push(buildCommand(INIT_COMMAND_3));
+  buffer.push(buildCommand(INIT_COMMAND_4));
+  buffer.push(buildCommand(INIT_COMMAND_5));
 
 }
 
@@ -203,31 +201,29 @@ void loop()
 {
   uint32_t currentMillis = millis();
 
-  Instructions instructions_copy = instructions;
-
   if (currentMillis - previousMillis10ms >= PERIOD_10_MS)
   {
     previousMillis10ms = currentMillis;
 
-    buffer.push(factory.buildCommand(MOVE_COMMAND, instructions_copy));
-    // buffer.push(factory.buildCommand(GIMBALL_COMMAND, instructions_copy));
+    buffer.push(buildCommand(MOVE_COMMAND, instructions));
+    buffer.push(buildCommand(GIMBALL_COMMAND, instructions));
   }
 
   if (currentMillis - previousMillis100ms >= PERIOD_100_MS)
   {
     previousMillis100ms = currentMillis;
 
-    buffer.push(factory.buildCommand(COMMAND_1));
-    buffer.push(factory.buildCommand(COMMAND_2));
-    buffer.push(factory.buildCommand(COMMAND_3));
+    buffer.push(buildCommand(COMMAND_1));
+    buffer.push(buildCommand(COMMAND_2));
+    buffer.push(buildCommand(COMMAND_3));
   }
 
   if (currentMillis - previousMillis1000ms >= PERIOD_1000_MS)
   {
     previousMillis1000ms = currentMillis;
 
-    buffer.push(factory.buildCommand(COMMAND_4));
-    buffer.push(factory.buildCommand(COMMAND_5));
+    buffer.push(buildCommand(COMMAND_4));
+    buffer.push(buildCommand(COMMAND_5));
   }
 
   RCSOFTCHECK(rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1)));
@@ -251,5 +247,5 @@ void loop()
   if (status == BUFFER_EMPTY)
       return;
 
-  sendCommand(command);
+  sendCommand(&command);
 }
