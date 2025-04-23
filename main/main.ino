@@ -22,6 +22,8 @@
 
 #include "error_check.h"
 
+#define ROS_DOMAIN_ID 1  // don't forget to change for different robots
+
 #define MICROROS_AGENT_CONNECTION_LED 13
 
 #define USE_FRONT_ULTRASONIC_SENSOR 0
@@ -115,7 +117,11 @@ void setup()
   CanBus.begin(CAN_BAUD_1000K, CAN_STD_FORMAT);
 
   allocator = rcl_get_default_allocator();
-  RCCHECK(rclc_support_init(&support, 0, NULL, &allocator));
+  rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
+  rcl_init_options_init(&init_options, allocator);
+  rcl_init_options_set_domain_id(&init_options, ROS_DOMAIN_ID);
+  RCCHECK(rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator));
+  
   RCCHECK(rclc_node_init_default(&node, "main_node", "", &support));
 
   RCCHECK(rclc_subscription_init_default(
